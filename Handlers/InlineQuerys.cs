@@ -24,14 +24,26 @@ namespace KoriMiyohashi.Handlers
             listener.RegisterInlineQuery("", DefaultQuery);
         }
 
-        private async Task DefaultQuery(CallbackQuery query, DbUser user, string arg3)
+        private async Task DefaultQuery(CallbackQuery query, DbUser user, string data)
         {
-            switch (arg3)
+            switch (data)
             {
                 case "submit":
+                    throw new NotImplementedException();
                 case "preview":
+                    var sub = GetUnfinish(user).First();
+                    sub.ToPubHtmlString();
+                    
+                    break;
                 default:
                     break;
+            }
+            if (data.StartsWith("send/song/"))
+            {
+                int songId = int.Parse(data.Split('/')[2]);
+                Song song = repos.Songs.Queryable().Where(x => x.Id == songId).First();
+                await bot.SendAudioAsync(query.Message!.Chat.Id,InputFile.FromFileId(song.FileId!));
+                return;
             }
         }
 
@@ -210,6 +222,47 @@ namespace KoriMiyohashi.Handlers
                 default:
                     break;
             }
+            if (data.StartsWith("edit/song/"))
+            {
+                var arg = data.Split('/');
+                var action = arg[2];
+                var songId = int.Parse(arg[3]);
+
+                var text = "";
+                switch (action)
+                {
+                    case "title":
+                        text = $"正在修改标题";
+                        sub.Status = $"Edit/Song/Title/{songId}";break;
+                    case "artist":
+                        text = $"正在修改艺术家";
+                        sub.Status = $"Edit/Song/Artist/{songId}";break;
+                    case "album":
+                        text = $"正在修改专辑";
+                        sub.Status = $"Edit/Song/Album/{songId}"; break;
+                    case "delete":
+                        Song song = repos.Songs.Queryable().Where(x => x.Id == songId).First();
+                        song.SubmissionId = 0;
+                        await repos.Songs.Storageable(song).ExecuteCommandAsync();
+                        text = $"已移除曲目 <code>{song.Title} - {song.Artist}</code>";
+
+                        var st2 = await bot.SendTextMessageAsync(query.Message!.Chat.Id, text, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                        st2.DeleteLater();
+                        await repos.Submissions.Storageable(sub).ExecuteCommandAsync();
+
+                        sub = GetSubmission(sub.Id);
+
+                        await RefreshMainPage(query.Message.Chat.Id, sub);
+                        return;
+                    default:
+                        throw new InvalidOperationException($"无效的操作: {data}");
+                }
+                var st =await bot.SendTextMessageAsync(query.Message!.Chat.Id,text);
+                st.DeleteLater();
+                repos.Submissions.Storageable(sub).ExecuteCommand();
+                return;
+            }
+
             repos.Submissions.Storageable(sub).ExecuteCommand();
             await RefreshMainPage(query.Message!.Chat.Id, sub);
         }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace KoriMiyohashi.Modules.Types
 {
@@ -49,13 +50,21 @@ namespace KoriMiyohashi.Modules.Types
         {
             string text = $"标签: #{Tags}\n" +
                     $"推荐理由: {Description.HtmlEscape()}\n" +
-                    $"曲目数量: {Songs.Count}";
+                    $"曲目数量: {Songs.Count}\n" +
+                    "\n" +
+                    $"当前曲目：";
+            int i = 1;
             foreach (Song song in Songs)
             {
                 if (!String.IsNullOrEmpty(song.Link))
                 {
-                    text += $"\n<a href=\"{song.Link}\">{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</a>";
+                    text += $"\n{i}: <a href=\"{HttpUtility.HtmlAttributeEncode(song.Link)}\">{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</a>";
                 }
+                else
+                {
+                    text += $"\n{i}: <code>{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</code>";
+                }
+                i++;
             }
             if (Anonymous)
             {
@@ -73,23 +82,36 @@ namespace KoriMiyohashi.Modules.Types
 
         public string ToPubHtmlString()
         {
-            string head = $"投稿人: <a href=\"tg://user?id={User.Id}\">{User.FullName.HtmlEscape()}</a>\n" +
+            string text = $"投稿人: <a href=\"tg://user?id={User.Id}\">{User.FullName.HtmlEscape()}</a>\n" +
                 $"Tag: #{Tags}\n" +
                 $"附言: {Description}\n" +
                 $"曲目数量: {Songs.Count}\n" +
                 $"\n";
+            int i = 1;
             foreach (Song song in Songs)
             {
                 if (!String.IsNullOrEmpty(song.Link))
                 {
-                    head += $"\n<a href=\"{song.Link}\">{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</a>";
+                    text += $"\n{i}: <a href=\"{HttpUtility.HtmlAttributeEncode(song.Link)}\">{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</a>";
                 }
                 else
                 {
-                    head += $"\n<code>{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</code>";
+                    text += $"\n{i}: <code>{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</code>";
                 }
+                i++;
             }
-            return head;
+            if (Anonymous)
+            {
+                return 
+                    $"投稿人: 匿名\n" +
+                    text;
+            }
+            else
+            {
+                return 
+                    $"投稿人: <a href=\"tg://user?id={User.Id}\">{User.FullName.HtmlEscape()}</a>\n" +
+                    text;
+            }
         }
 
     }

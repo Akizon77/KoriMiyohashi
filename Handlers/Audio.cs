@@ -23,7 +23,7 @@ namespace KoriMiyohashi.Handlers
             Song song = new Song()
             {
                 Title = audio.Title ?? "无标题",
-                Artist = audio.Title ?? "无艺术家",
+                Artist = audio.Performer ?? "无艺术家",
                 FileId = audio.FileId,
             };
             var unfinish = GetUnfinish(user);

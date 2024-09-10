@@ -136,9 +136,10 @@ namespace KoriMiyohashi.Modules
                         await OnInlineQuery(query,dbUser, query.Data);
                     }
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    throw;
+                    Log.Error(e, "Unable to process Inline message.{@0}",query);
+                    _ = BotClient.SendTextMessageAsync(query.Message.Chat.Id,"被玩坏了喵\n"+e.Message);
                 }
             }
             else

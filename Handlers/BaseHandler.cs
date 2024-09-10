@@ -9,6 +9,7 @@ using Telegram.Bot;
 using KoriMiyohashi.Modules.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Web;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -104,7 +105,7 @@ namespace KoriMiyohashi.Handlers
                 {
                     { "🗑 移除此曲目",$"edit/song/delete/{songID}" },
                 };
-                text = "<b>链接投稿</b>\n\n" + text + $"链接: {song.Link}";
+                text = "<b>链接投稿</b>\n\n" + text + $"链接: {HttpUtility.HtmlAttributeEncode(song.Link)}";
             }
             else
             {
@@ -112,7 +113,7 @@ namespace KoriMiyohashi.Handlers
                     { "📤 发送文件",$"send/song/{song.Id}" },
                     { "🗑 移除此曲目",$"edit/song/delete/{songID}" },
                 };
-                text = "<b>文件投稿</b>\n\n" + text + $"文件ID: {song.FileId}";
+                text = "<b>文件投稿</b>\n\n" + text + $"文件ID:\n<code>{song.FileId}</code>";
             }
             
             var inline = FastGenerator.GeneratorInlineButton([
@@ -121,8 +122,8 @@ namespace KoriMiyohashi.Handlers
                 },
                 new (){
                     { "修改标题",$"edit/song/title/{songID}" },
-                    { "修改艺术家",$"edit/song/aritis/{songID}" },
-                    { "修改专辑",$"edit/song/album/{songID}" },
+                    { "修改艺术家",$"edit/song/artist/{songID}" },
+                    //{ "修改专辑",$"edit/song/album/{songID}" },
                 },
                 dic
             ]);
@@ -143,5 +144,13 @@ namespace KoriMiyohashi.Handlers
             
         }
 
+        internal async Task<Message> Publish(long chatId,Submission sub)
+        {
+            throw new NotImplementedException();
+        }
+        internal async Task<Message> Aduit(long chatId, Submission sub)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

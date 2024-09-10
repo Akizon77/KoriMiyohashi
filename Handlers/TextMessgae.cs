@@ -41,7 +41,7 @@ namespace KoriMiyohashi.Handlers
                     };
                     repos.Songs.Insertable(song).ExecuteCommand();
                     sub = GetSubmission(sub.Id);
-
+                    message.DeleteLater(1);
                     await RefreshMainPage(message.Chat.Id, sub);
                     return;
                 }
@@ -56,6 +56,29 @@ namespace KoriMiyohashi.Handlers
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     message.DeleteLater(1);
                     await RefreshMainPage(message.Chat.Id, sub);
+                }
+                else if(sub.Status.StartsWith("Edit/Song/"))
+                {
+                    var arg = sub.Status.Split('/');
+                    var action = arg[2];
+                    int songId = int.Parse(arg[3]);
+                    Song song = repos.Songs.Queryable().Where(x => x.Id == songId).First();
+                    switch (action)
+                    {
+                        case "Title":
+                            song.Title = arg3;break;
+                        case "Artist":
+                            song.Artist = arg3; break;
+                        case "Album":
+                            //song. = arg3; break;
+                        default:
+                            break;
+                    }
+                    sub.Status = "WAITING";
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    repos.Songs.Storageable(song).ExecuteCommand();
+                    message.DeleteLater(1);
+                    await NavigateToSongPage(message.Chat.Id,sub,songId);
                 }
                 else if (sub.Status == "WAITING")
                 {
