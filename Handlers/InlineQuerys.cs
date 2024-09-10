@@ -131,6 +131,16 @@ namespace KoriMiyohashi.Handlers
                     sub.SubmissionMessageId = st.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     break;
+                default:
+                    // page/songdetail
+                    if (data.StartsWith("page/songdetail/"))
+                    {
+                        var songIdInSub = int.Parse(data.Split('/')[2]);
+                        Song song = sub.Songs[songIdInSub];
+                        await NavigateToSongPage(query.Message!.Chat.Id, sub, song.Id);
+                        return;
+                    }
+                    break;
             }
         }
 

@@ -71,6 +71,27 @@ namespace KoriMiyohashi.Modules.Types
             }
         }
 
+        public string ToPubHtmlString()
+        {
+            string head = $"投稿人: <a href=\"tg://user?id={User.Id}\">{User.FullName.HtmlEscape()}</a>\n" +
+                $"Tag: #{Tags}\n" +
+                $"附言: {Description}\n" +
+                $"曲目数量: {Songs.Count}\n" +
+                $"\n";
+            foreach (Song song in Songs)
+            {
+                if (!String.IsNullOrEmpty(song.Link))
+                {
+                    head += $"\n<a href=\"{song.Link}\">{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</a>";
+                }
+                else
+                {
+                    head += $"\n<code>{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</code>";
+                }
+            }
+            return head;
+        }
+
     }
     public class Song : MamoLib.Sql.SqlReopBase
     {

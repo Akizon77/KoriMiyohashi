@@ -90,6 +90,58 @@ namespace KoriMiyohashi.Handlers
             return st;
         }
 
+        internal async Task<Message> NavigateToSongPage(long chatId,Submission sub,int songID)
+        {
+            Song song = repos.Songs.Queryable().Where(x => x.Id == songID).First();
+
+            var text = $"标题: <code>{song.Title}</code>\n" +
+                $"艺术家: <code>{song.Artist}</code>\n";
+
+            Dictionary<string, string> dic;
+            if (string.IsNullOrEmpty(song.FileId))
+            {
+                dic = new()
+                {
+                    { "🗑 移除此曲目",$"edit/song/delete/{songID}" },
+                };
+                text = "<b>链接投稿</b>\n\n" + text + $"链接: {song.Link}";
+            }
+            else
+            {
+                dic = new(){
+                    { "📤 发送文件",$"send/song/{song.Id}" },
+                    { "🗑 移除此曲目",$"edit/song/delete/{songID}" },
+                };
+                text = "<b>文件投稿</b>\n\n" + text + $"文件ID: {song.FileId}";
+            }
+            
+            var inline = FastGenerator.GeneratorInlineButton([
+                new(){
+                    { "◀️ 返回","page/song" }
+                },
+                new (){
+                    { "修改标题",$"edit/song/title/{songID}" },
+                    { "修改艺术家",$"edit/song/aritis/{songID}" },
+                    { "修改专辑",$"edit/song/album/{songID}" },
+                },
+                dic
+            ]);
+
+            var st = await bot.SendTextMessageAsync(chatId,text,
+                replyMarkup:inline,
+                parseMode:ParseMode.Html,
+                disableWebPagePreview:true);
+
+            _ = bot.DeleteMessageAsync(chatId,sub.SubmissionMessageId);
+
+            sub.SubmissionMessageId = st.MessageId;
+
+            repos.Submissions.Storageable(sub).ExecuteCommand();
+
+            return st;
+
+            
+        }
 
     }
 }
