@@ -30,18 +30,41 @@ namespace KoriMiyohashi.Handlers
                 .Where(x => x.UserId == user.Id).First();
             if (arg3.StartsWith("http"))
             {
-                
+                var parsed = new Song();
+                Parser.ParseQQMusic(arg3, ref parsed);
+                Parser.ParseNeteaseMusic(arg3, ref parsed);
+                Parser.ParseSpotify(arg3,ref parsed);
+                //存在投稿的情况
                 if (sub != null)
                 {
+                    message.DeleteLater(1);
                     //发送链接，且存在投稿
                     Song song = new Song()
                     {
+                        Title = parsed.Title,
+                        Artist = parsed.Artist,
                         SubmissionId = sub.Id,
-                        Link = arg3
+                        Link = string.IsNullOrEmpty(parsed.Link)?arg3: parsed.Link,
                     };
                     repos.Songs.Insertable(song).ExecuteCommand();
                     sub = GetSubmission(sub.Id);
+                    await RefreshMainPage(message.Chat.Id, sub);
+                    return;
+                }
+                //没有进行投稿
+                else
+                {
                     message.DeleteLater(1);
+                    sub = new()
+                    {
+                        UserId = user.Id,
+                    };
+                    sub = repos.Submissions.Insertable(sub).ExecuteReturnEntity();
+                    Song song = parsed;
+                    song.SubmissionId = sub.Id;
+                    song.Link = string.IsNullOrEmpty(parsed.Link) ? arg3 : parsed.Link;
+                    repos.Songs.Insertable(song).ExecuteCommand();
+                    sub = GetSubmission(sub.Id);
                     await RefreshMainPage(message.Chat.Id, sub);
                     return;
                 }
@@ -88,8 +111,12 @@ namespace KoriMiyohashi.Handlers
                 }
                 return;
             }
-
-
+            message.DeleteLater(10);
+            var st1 = await bot.SendTextMessageAsync(message.Chat.Id,$"可以使用以下方式投稿哦~\n\n" +
+                $"- 发送音频文件(可在Telegram内直接播放)\n" +
+                $"- 发送音乐平台分享链接\n" +
+                $"- 使用 /newpost 创建空白投稿");
+            st1.DeleteLater(30);
         }
     }
 }

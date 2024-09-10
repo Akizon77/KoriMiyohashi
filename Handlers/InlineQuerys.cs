@@ -32,7 +32,8 @@ namespace KoriMiyohashi.Handlers
                     throw new NotImplementedException();
                 case "preview":
                     var sub = GetUnfinish(user).First();
-                    sub.ToPubHtmlString();
+
+                    await Publish(query.Message!.Chat.Id, sub);
                     
                     break;
                 default:
@@ -108,7 +109,8 @@ namespace KoriMiyohashi.Handlers
                     break;
                 case "page/song":
                     string text = $"当前投稿包含 <code>{sub.Songs.Count}</code> 个曲目\n\n" +
-                        $"如需添加曲目，请发送<b>音频文件</b>或者以 <b>http</b> 开头的链接\n";
+                        $"如需添加曲目，请发送<b>音频文件</b>或者<b>音乐平台链接</b>。\n" +
+                        $"目前可以自动识别并填充<b>QQ音乐</b>、<b>网易云音乐</b>的歌曲信息。\n";
                     InlineKeyboardMarkup inline;
                     if (sub.Songs.Count == 0)
                     {
@@ -240,6 +242,9 @@ namespace KoriMiyohashi.Handlers
                     case "album":
                         text = $"正在修改专辑";
                         sub.Status = $"Edit/Song/Album/{songId}"; break;
+                    case "addFile":
+                        text = $"正在补充文件";
+                        sub.Status = $"Edit/Song/AddFile/{songId}"; break;
                     case "delete":
                         Song song = repos.Songs.Queryable().Where(x => x.Id == songId).First();
                         song.SubmissionId = 0;

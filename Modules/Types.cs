@@ -58,11 +58,11 @@ namespace KoriMiyohashi.Modules.Types
             {
                 if (!String.IsNullOrEmpty(song.Link))
                 {
-                    text += $"\n{i}: <a href=\"{HttpUtility.HtmlAttributeEncode(song.Link)}\">{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</a>";
+                    text += $"\n{i}: <a href=\"{HttpUtility.HtmlAttributeEncode(song.Link)}\">{song.Artist.HtmlEscape()} - {song.Title.HtmlEscape()}</a>";
                 }
                 else
                 {
-                    text += $"\n{i}: <code>{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</code>";
+                    text += $"\n{i}: <code>{song.Artist.HtmlEscape()} - {song.Title.HtmlEscape()}</code>";
                 }
                 i++;
             }
@@ -82,21 +82,20 @@ namespace KoriMiyohashi.Modules.Types
 
         public string ToPubHtmlString()
         {
-            string text = $"投稿人: <a href=\"tg://user?id={User.Id}\">{User.FullName.HtmlEscape()}</a>\n" +
+            string text = 
                 $"Tag: #{Tags}\n" +
                 $"附言: {Description}\n" +
-                $"曲目数量: {Songs.Count}\n" +
-                $"\n";
+                $"曲目数量: {Songs.Count}\n";
             int i = 1;
             foreach (Song song in Songs)
             {
                 if (!String.IsNullOrEmpty(song.Link))
                 {
-                    text += $"\n{i}: <a href=\"{HttpUtility.HtmlAttributeEncode(song.Link)}\">{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</a>";
+                    text += $"\n{i}: <a href=\"{HttpUtility.HtmlAttributeEncode(song.Link)}\">{song.Artist.HtmlEscape()} - {song.Title.HtmlEscape()}</a>";
                 }
                 else
                 {
-                    text += $"\n{i}: <code>{song.Title.HtmlEscape()} - {song.Artist.HtmlEscape()}</code>";
+                    text += $"\n{i}: <code>{song.Artist.HtmlEscape()} - {song.Title.HtmlEscape()}</code>";
                 }
                 i++;
             }
@@ -121,9 +120,9 @@ namespace KoriMiyohashi.Modules.Types
         public int Id { get; set; }
         public int SubmissionId { get; set; }
         [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT")]
-        public string Title { get; set; } = "暂无标题";
+        public string Title { get; set; } = "未知标题";
         [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT")]
-        public string Artist { get; set; } = "";
+        public string Artist { get; set; } = "未知作曲家";
         [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT",IsNullable = true)]
         public string? Link { get; set; }
         [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT", IsNullable = true)]

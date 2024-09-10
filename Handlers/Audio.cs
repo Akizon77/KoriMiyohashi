@@ -53,6 +53,21 @@ namespace KoriMiyohashi.Handlers
             else
             {
                 Submission sub = unfinish.FirstOrDefault()!;
+                //为曲目补充文件
+                if (sub.Status.StartsWith("Edit/Song/AddFile/"))
+                {
+                    int songId = int.Parse(sub.Status.Split('/')[3]);
+                    song = repos.Songs.Queryable().Where(x => x.Id == songId).First();
+                    song.FileId = audio.FileId;
+                    repos.Songs.Storageable(song).ExecuteCommand();
+
+                    sub.Status = "WAITING";
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    sub = GetSubmission(sub.Id);
+                    await RefreshMainPage(message.Chat.Id,sub);
+                    return;
+                }
+                //添加曲目
                 song.SubmissionId = sub.Id;
                 repos.Songs.Insertable(song).ExecuteCommand();
                 sub = GetSubmission(sub.Id);

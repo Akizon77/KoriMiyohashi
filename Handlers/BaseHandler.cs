@@ -29,7 +29,8 @@ namespace KoriMiyohashi.Handlers
                 .Where(x => x.UserId == user.Id).ToList();
             return unfinished;
         }
-        internal Submission GetSubmission(int id) 
+
+        internal Submission GetSubmission(int id)
         {
             var unfinished = repos.Submissions.Queryable()
                 .Includes(x => x.User)
@@ -37,25 +38,26 @@ namespace KoriMiyohashi.Handlers
                 .Where(x => x.Id == id).First();
             return unfinished;
         }
-        internal async Task<Message> SendGroupMedia(long chatId,IEnumerable<InputMediaAudio> media,
-            string caption = "", 
+
+        internal async Task<Message> SendGroupMedia(long chatId, IEnumerable<InputMediaAudio> media,
+            string caption = "",
             ParseMode parseMode = ParseMode.Html,
             InlineKeyboardMarkup? inlineKeyboardMarkup = null)
         {
             if (media.Count() == 1)
             {
                 InputMediaAudio? audio = media.First();
-                return await bot.SendAudioAsync(chatId, audio.Media,caption:caption,parseMode:parseMode,replyMarkup:inlineKeyboardMarkup);
+                return await bot.SendAudioAsync(chatId, audio.Media, caption: caption, parseMode: parseMode, replyMarkup: inlineKeyboardMarkup);
             }
 
             media.Last().Caption = caption;
             media.Last().ParseMode = parseMode;
-            var messages =  await bot.SendMediaGroupAsync(chatId, media);
-            await bot.EditMessageReplyMarkupAsync(chatId, messages.Last().MessageId, inlineKeyboardMarkup);
+            var messages = await bot.SendMediaGroupAsync(chatId, media);
+            _ =  bot.EditMessageReplyMarkupAsync(chatId, messages.Last().MessageId, inlineKeyboardMarkup);
             return messages.First();
         }
 
-        internal async Task<Message> RefreshMainPage(long chatId,Submission sub)
+        internal async Task<Message> RefreshMainPage(long chatId, Submission sub)
         {
             string? fileIds = null;
 
@@ -91,7 +93,7 @@ namespace KoriMiyohashi.Handlers
             return st;
         }
 
-        internal async Task<Message> NavigateToSongPage(long chatId,Submission sub,int songID)
+        internal async Task<Message> NavigateToSongPage(long chatId, Submission sub, int songID)
         {
             Song song = repos.Songs.Queryable().Where(x => x.Id == songID).First();
 
@@ -103,6 +105,7 @@ namespace KoriMiyohashi.Handlers
             {
                 dic = new()
                 {
+                    { "➕ 添加文件",$"edit/song/addFile/{songID}" },
                     { "🗑 移除此曲目",$"edit/song/delete/{songID}" },
                 };
                 text = "<b>链接投稿</b>\n\n" + text + $"链接: {HttpUtility.HtmlAttributeEncode(song.Link)}";
@@ -114,8 +117,11 @@ namespace KoriMiyohashi.Handlers
                     { "🗑 移除此曲目",$"edit/song/delete/{songID}" },
                 };
                 text = "<b>文件投稿</b>\n\n" + text + $"文件ID:\n<code>{song.FileId}</code>";
+                if (!string.IsNullOrEmpty(song.Link))
+                    text +=  $"\n链接: {HttpUtility.HtmlAttributeEncode(song.Link)}";
+                
             }
-            
+
             var inline = FastGenerator.GeneratorInlineButton([
                 new(){
                     { "◀️ 返回","page/song" }
@@ -128,26 +134,58 @@ namespace KoriMiyohashi.Handlers
                 dic
             ]);
 
-            var st = await bot.SendTextMessageAsync(chatId,text,
-                replyMarkup:inline,
-                parseMode:ParseMode.Html,
-                disableWebPagePreview:true);
+            var st = await bot.SendTextMessageAsync(chatId, text,
+                replyMarkup: inline,
+                parseMode: ParseMode.Html,
+                disableWebPagePreview: true);
 
-            _ = bot.DeleteMessageAsync(chatId,sub.SubmissionMessageId);
+            _ = bot.DeleteMessageAsync(chatId, sub.SubmissionMessageId);
 
             sub.SubmissionMessageId = st.MessageId;
 
             repos.Submissions.Storageable(sub).ExecuteCommand();
 
             return st;
-
-            
         }
 
-        internal async Task<Message> Publish(long chatId,Submission sub)
+        internal async Task<Message> Publish(long chatId, Submission sub)
         {
-            throw new NotImplementedException();
+            if (sub.Songs.Count == 0)
+            {
+                var t = "请至少添加一首单曲哦~\n\n直接发送音频文件 或者 发送音乐平台分享链接即可哦";
+                var st2 = await bot.SendTextMessageAsync(chatId, t);
+                st2.DeleteLater();
+                return st2;
+            }
+            List<String> fileIds = new();
+            for (var i = 0; i < sub.Songs.Count; i++)
+            {
+                if (!string.IsNullOrEmpty(sub.Songs[i].FileId))
+                    fileIds.Add(sub.Songs[i].FileId!);
+            }
+
+            if (fileIds.Count == 0)
+            {
+                return await bot.SendTextMessageAsync(chatId, sub.ToPubHtmlString(),
+                    parseMode: ParseMode.Html);
+            }
+            else if (fileIds.Count == 1)
+            {
+                return await bot.SendAudioAsync(chatId, InputFile.FromFileId(fileIds[0]),
+                    parseMode:ParseMode.Html, 
+                    caption: sub.ToPubHtmlString());
+            }
+            else //if (sub.Songs.Count > 1)
+            {
+                List<InputMediaAudio> inputMediaAudio = new();
+                foreach (var s in fileIds)
+                {
+                    inputMediaAudio.Add(new InputMediaAudio(InputFile.FromFileId(s)));
+                }
+                return await SendGroupMedia(chatId, inputMediaAudio,sub.ToPubHtmlString());
+            }
         }
+
         internal async Task<Message> Aduit(long chatId, Submission sub)
         {
             throw new NotImplementedException();
