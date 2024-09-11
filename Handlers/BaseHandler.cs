@@ -93,6 +93,37 @@ namespace KoriMiyohashi.Handlers
             return st;
         }
 
+        internal async Task<Message> SendOneAudioOrText(long chatId,List<Song> songs, string textOrCaption = "", ParseMode parseMode = ParseMode.Html,IReplyMarkup? replyMarkup = null)
+        {
+            string? fileIds = null;
+
+            foreach (var item in songs)
+            {
+                if (item.FileId != null)
+                {
+                    fileIds = item.FileId;
+                    break;
+                }
+            }
+            Message st;
+            if (String.IsNullOrEmpty(fileIds))
+            {
+                st = await bot.SendTextMessageAsync(chatId,
+                    textOrCaption,
+                    replyMarkup: replyMarkup,
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+            }
+            else
+            {
+                st = await bot.SendAudioAsync(chatId,
+                    InputFile.FromFileId(fileIds),
+                    caption: textOrCaption,
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    replyMarkup: replyMarkup);
+            }
+            return st;
+        }
+
         internal async Task<Message> NavigateToSongPage(long chatId, Submission sub, int songID)
         {
             Song song = repos.Songs.Queryable().Where(x => x.Id == songID).First();

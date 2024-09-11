@@ -12,7 +12,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KoriMiyohashi.Handlers
 {
-    public class InlineQuerys : BaseHandler
+    public partial class InlineQuerys : BaseHandler
     {
 
         public InlineQuerys()
@@ -22,17 +22,47 @@ namespace KoriMiyohashi.Handlers
             listener.RegisterInlineQuery("page", PageQuery);
             listener.RegisterInlineQuery("switch", SwitchQuery);
             listener.RegisterInlineQuery("", DefaultQuery);
+            listener.RegisterInlineQuery("aduit", AduitQuery);
         }
+
 
         private async Task DefaultQuery(CallbackQuery query, DbUser user, string data)
         {
+            var sub = GetUnfinish(user).First();
             switch (data)
             {
                 case "submit":
-                    throw new NotImplementedException();
+                    ArgumentNullException.ThrowIfNull(nameof(sub));
+                    //送审
+                    sub.Status = "ADUIT/WAITING";
+                    Dictionary<string, string> dic = new();
+                    if (sub.Songs.Count > 1)
+                        dic = new()
+                        {
+                            { "详情",$"aduit/details/{sub.Id}" }
+                        };
+                    var inline = FastGenerator.GeneratorInlineButton([
+                        new(){
+                            { "✅ 通过",$"aduit/approve/{sub.Id}" }
+                        },
+                        new (){
+                            { "❌ 拒绝",$"aduit/reject/{sub.Id}" },
+                            { "🔕 静默拒绝",$"aduit/slient/{sub.Id}" },
+                        },
+                        dic
+                        ]);
+                    var st = await SendOneAudioOrText(Env.WORK_GROUP, sub.Songs,sub.ToPubHtmlString(),replyMarkup:inline);
+                    sub.GroupMessageId = st.MessageId;
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    sub = GetSubmission(sub.Id);
+                    //告知
+                    query.Message!.DeleteLater();
+                    var st1 = await Publish(query.Message!.Chat.Id,sub);
+                    sub.SubmissionMessageId = st1.MessageId;
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    break;
                 case "preview":
-                    var sub = GetUnfinish(user).First();
-
+                    ArgumentNullException.ThrowIfNull(nameof(sub));
                     await Publish(query.Message!.Chat.Id, sub);
                     
                     break;
