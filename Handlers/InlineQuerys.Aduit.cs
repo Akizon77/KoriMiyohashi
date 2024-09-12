@@ -1,7 +1,10 @@
-﻿using KoriMiyohashi.Modules.Types;
+﻿using KoriMiyohashi.Modules;
+using KoriMiyohashi.Modules.Types;
 using MamoLib.TgExtensions;
+using System.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -16,11 +19,11 @@ namespace KoriMiyohashi.Handlers
             var sub = GetSubmission(subId);
             var message = query.Message!;
             var chatid = message.Chat.Id;
-            async Task FastAduit(string text,string status)
+            async Task FastAduit(string text, string status)
             {
                 await bot.EditMessageReplyMarkupAsync(chatid, message.MessageId
                         , FastGenerator.GeneratorInlineButton([
-                            new(){ { $"{message.From!.GetFullName()}: {text}",TimeStamp.GetNow().ToString()} }]));
+                            new(){ { $"{query.From!.GetFullName()}({query.From.Id}): {text}",TimeStamp.GetNow().ToString()} }]));
                 sub.Status = status;
                 repos.Submissions.Storageable(sub).ExecuteCommand();
                 sub = GetSubmission(sub.Id);
@@ -28,29 +31,86 @@ namespace KoriMiyohashi.Handlers
             switch (action)
             {
                 case "approve":
-                    await FastAduit("通过","APPROVED");
-                    //TODO: 发布
+                    await Approve(sub,user);
+                    break;
+                case "reject":
+                    await FastAduit("拒绝", "REJECTED");
                     try
                     {
-                        await bot.SendTextMessageAsync(sub.UserId, "感谢你的投稿，稿件已通过", replyToMessageId: sub.SubmissionMessageId);
+                        await bot.SendTextMessageAsync(sub.UserId, $"感谢您的投稿！遗憾地通知您，您的稿件未能通过审核。", replyToMessageId: sub.SubmissionMessageId);
                     }
                     catch
                     {
-                        await bot.SendTextMessageAsync(sub.UserId, "感谢你的投稿，稿件已通过");
+                        await bot.SendTextMessageAsync(sub.UserId, $"感谢您的投稿！遗憾地通知您，您的稿件未能通过审核。");
                     }
-                    return;
-                case "reject":
-                    await FastAduit("拒绝", "REJECTED");
-                    //TODO: 通知
                     return;
                 case "slient":
                     await FastAduit("静默拒绝", "REJECTED");
                     return;
                 case "details":
+                    await Publish(query.Message!.Chat.Id, sub,replyTo: query.Message!.MessageId);
+                    return ;
+                case "addfile":
+                    var dic = new Dictionary<string, string>();
+                    for (int i = 0; i < sub.Songs.Count; i++)
+                    {
+                        if (string.IsNullOrEmpty(sub.Songs[i].FileId))
+                            dic.Add((i+1).ToString(), $"aduit/song/{sub.Id}/{sub.Songs[i].Id}");
+                    }
+                    var inline = FastGenerator.GeneratorInlineButton([
+                        new(){
+                            {"⬅️ 返回","aduit/mainpage/" + sub.Id }
+                        },
+                        new(){
+                            {"添加文件回复此消息即可",$"{TimeStamp.GetNow()}" }
+                        },
+                        new(){
+                            {"未指定情况下将顺序补充",$"{TimeStamp.GetNow()}" }
+                        },
+                        dic
+                        ]);
+                    await bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id,query.Message.MessageId,inline);
+                    return;
+                case "delfile":
+                    var songid0 = int.Parse(args[3]);
+                    var song0 = repos.Songs.Queryable().Where(x => x.Id == songid0).First();
+                    song0.FileId = null;
+                    repos.Songs.Storageable(song0).ExecuteCommand();
+                    query.Message!.DeleteLater(1);
+                    return;
+                case "mainpage":
+                    await bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id, query.Message.MessageId, FastGenerator.DefaultAduitMarkup(sub));
+                    return;
+                case "song":
+                    var songid = int.Parse(args[3]);
+                    var song = repos.Songs.Queryable().Where(x => x.Id == songid).First();
+                    var titleTrimmed = "";
+                    var artistTrimmed = "";
+                    if (song.Title.Length > 15) titleTrimmed = song.Title[..14];
+                    else titleTrimmed = song.Title;
+                    if (song.Artist.Length > 15) artistTrimmed = song.Artist[..14];
+                    else artistTrimmed = song.Artist;
+
+                    sub.Status = $"ADUIT/ADDFILE/{songid}";
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    // Update Sub (Optional)
+
+                    List<List<InlineKeyboardButton>> keyboardInline = new();
+                    keyboardInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData("⬅️ 返回", "aduit/addfile/" + sub.Id) });
+                    keyboardInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData($"标题:{titleTrimmed}", $"{TimeStamp.GetNow()}") });
+                    keyboardInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData($"艺术家:{artistTrimmed}", $"{TimeStamp.GetNow()}") });
+                    keyboardInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithUrl($"使用音频回复此消息(点击搜索)", $"https://google.com/search?q={HttpUtility.UrlEncode($"{song.Artist} {song.Title}")}") });
+                    
+                    await bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id, query.Message.MessageId, new InlineKeyboardMarkup(keyboardInline));
+                    return;
                 default:
-                    throw new InvalidOperationException(data);
+                    throw new InvalidOperationException("无效的操作: "+data);
             }
             throw new NotImplementedException();
+
+            
         }
+
+        
     }
 }

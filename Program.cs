@@ -18,10 +18,8 @@ new Commands();
 new TextMessgae();
 new Audios();
 
-var repos = Hosting.GetRequiredService<Repos>();
-
-var unfinished = repos.Submissions.Queryable().Where(x => x.Status != "WAITING").First();
-var text = $"你还有未完成的投稿！";
+var listener = Hosting.GetRequiredService<Listener>();
+_ = listener.SetMyCommandsAsync();
 
 
 Thread.Sleep(-1);

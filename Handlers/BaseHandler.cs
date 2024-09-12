@@ -10,6 +10,7 @@ using KoriMiyohashi.Modules.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Web;
+using System.Collections;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -26,7 +27,10 @@ namespace KoriMiyohashi.Handlers
                 .Includes(x => x.Songs)
                 .Where(x => x.Status != "DONE")
                 .Where(x => x.Status != "CANCEL")
+                .Where(x => x.Status != "APPROVED")
+                .Where(x => x.Status != "REJECTED")
                 .Where(x => x.UserId == user.Id).ToList();
+            unfinished = unfinished.Where(item => !item.Status.StartsWith("ADUIT")).ToList();
             return unfinished;
         }
 
@@ -42,7 +46,8 @@ namespace KoriMiyohashi.Handlers
         internal async Task<Message> SendGroupMedia(long chatId, IEnumerable<InputMediaAudio> media,
             string caption = "",
             ParseMode parseMode = ParseMode.Html,
-            InlineKeyboardMarkup? inlineKeyboardMarkup = null)
+            InlineKeyboardMarkup? inlineKeyboardMarkup = null,
+            int? replyTo = null)
         {
             if (media.Count() == 1)
             {
@@ -52,9 +57,19 @@ namespace KoriMiyohashi.Handlers
 
             media.Last().Caption = caption;
             media.Last().ParseMode = parseMode;
-            var messages = await bot.SendMediaGroupAsync(chatId, media);
-            _ =  bot.EditMessageReplyMarkupAsync(chatId, messages.Last().MessageId, inlineKeyboardMarkup);
-            return messages.First();
+            try
+            {
+                var messages = await bot.SendMediaGroupAsync(chatId, media);
+                _ = bot.EditMessageReplyMarkupAsync(chatId, messages.Last().MessageId, inlineKeyboardMarkup);
+                return messages.First();
+            }
+            catch
+            {
+                var messages = await bot.SendMediaGroupAsync(chatId, media,replyToMessageId:replyTo);
+                _ = bot.EditMessageReplyMarkupAsync(chatId, messages.Last().MessageId, inlineKeyboardMarkup);
+                return messages.First();
+            }
+            
         }
 
         internal async Task<Message> RefreshMainPage(long chatId, Submission sub)
@@ -179,7 +194,7 @@ namespace KoriMiyohashi.Handlers
             return st;
         }
 
-        internal async Task<Message> Publish(long chatId, Submission sub)
+        internal async Task<Message> Publish(long chatId, Submission sub,int? replyTo = null,string suffix = "")
         {
             if (sub.Songs.Count == 0)
             {
@@ -197,14 +212,35 @@ namespace KoriMiyohashi.Handlers
 
             if (fileIds.Count == 0)
             {
-                return await bot.SendTextMessageAsync(chatId, sub.ToPubHtmlString(),
-                    parseMode: ParseMode.Html);
+                try
+                {
+                    return await bot.SendTextMessageAsync(chatId
+                        , suffix + sub.ToPubHtmlString(),
+                        replyToMessageId:replyTo,
+                       parseMode: ParseMode.Html);
+                }
+                catch
+                {
+                    return await bot.SendTextMessageAsync(chatId, suffix + sub.ToPubHtmlString(),
+                       parseMode: ParseMode.Html);
+                }
             }
             else if (fileIds.Count == 1)
             {
-                return await bot.SendAudioAsync(chatId, InputFile.FromFileId(fileIds[0]),
-                    parseMode:ParseMode.Html, 
-                    caption: sub.ToPubHtmlString());
+                try
+                {
+                    return await bot.SendAudioAsync(chatId, InputFile.FromFileId(fileIds[0]),
+                    parseMode: ParseMode.Html,
+                    caption: suffix + sub.ToPubHtmlString());
+                }
+                catch
+                {
+                    return await bot.SendAudioAsync(chatId, InputFile.FromFileId(fileIds[0]),
+                    parseMode: ParseMode.Html,
+                    replyToMessageId: replyTo,
+                    caption: suffix + sub.ToPubHtmlString());
+                }
+                
             }
             else //if (sub.Songs.Count > 1)
             {
@@ -216,10 +252,38 @@ namespace KoriMiyohashi.Handlers
                 return await SendGroupMedia(chatId, inputMediaAudio,sub.ToPubHtmlString());
             }
         }
-
-        internal async Task<Message> Aduit(long chatId, Submission sub)
+    
+        internal async Task Approve(Submission sub,DbUser user)
         {
-            throw new NotImplementedException();
+            await bot.EditMessageReplyMarkupAsync(Env.WORK_GROUP, sub.GroupMessageId?? throw new NullReferenceException()
+                    , FastGenerator.GeneratorInlineButton([
+                        new(){ { $"{user.FullName}({user.Id}): 通过",TimeStamp.GetNow().ToString()} }]));
+            sub.Status = "APPROVED";
+            repos.Submissions.Storageable(sub).ExecuteCommand();
+            sub = GetSubmission(sub.Id);
+            var pub = await Publish(Env.CHANNEL_ID, sub);
+            try
+            {
+                await bot.SendTextMessageAsync(sub.UserId,
+                    $"感谢您的投稿，稿件已通过审核。<a href=\"{Env.CHANNEL_LINK}/{pub.MessageId}\">点击查看详情</a>\n",
+                    replyToMessageId: sub.SubmissionMessageId,
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    disableWebPagePreview: true);
+            }
+            catch
+            {
+                await bot.SendTextMessageAsync(sub.UserId,
+                    $"感谢您的投稿，稿件已通过审核。<a href=\"{Env.CHANNEL_LINK}/{pub.MessageId}\">点击查看详情</a>",
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    disableWebPagePreview: true);
+            }
+            sub.ChannelMessageId = pub.MessageId;
+            repos.Submissions.Storageable(sub).ExecuteCommand();
+            return;
         }
+
+
     }
+
+
 }

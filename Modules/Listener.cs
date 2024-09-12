@@ -6,6 +6,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot;
 using MamoLib.TgExtensions;
 using KoriMiyohashi.Modules.Types;
+using Telegram.Bot.Exceptions;
 
 namespace KoriMiyohashi.Modules
 {
@@ -95,7 +96,7 @@ namespace KoriMiyohashi.Modules
                     else if (update.Message.Audio is { } audio)
                     {
                         Log.Information("{name}({id}): {title} - {artist}", user.GetFullName(), user.Id, audio.Title,audio.Performer);
-                        await OnAudio(message.Audio, dbUser,message.Caption,message);
+                        await OnAudio(message.Audio!, dbUser,message.Caption!,message);
                     }
                 }
                 #region 异常捕获
@@ -132,9 +133,13 @@ namespace KoriMiyohashi.Modules
                     if (query.Data != null && query.Data.Length > 0)
                     {
                         Log.Debug("{name}({id}): {text}", user.GetFullName(), user.Id, query.Data);
-                        _ = BotClient.AnswerCallbackQueryAsync(query.Id);
                         await OnInlineQuery(query,dbUser, query.Data);
+                        _ = BotClient.AnswerCallbackQueryAsync(query.Id);
                     }
+                }
+                catch ( RequestException e )
+                {
+                    Log.Warning(e, "Exception during making request.");
                 }
                 catch (Exception e)
                 {
@@ -165,7 +170,7 @@ namespace KoriMiyohashi.Modules
         #endregion
         #region 指令
         private List<BotCommand> botCommands = new();
-        private Dictionary<string, bool> allowedPrivateCommand = new();
+        private Dictionary<string, string> allowedPrivateCommand = new();
         private Dictionary<string, Func<Message, DbUser, string, string[], Task>> commandsFunction = new();
 
         private async Task OnCommand(Message message, DbUser dbUser, string command, string[] args)
@@ -177,13 +182,18 @@ namespace KoriMiyohashi.Modules
             if (user.IsBot) throw new NotSupportedException("不能使用频道马甲喵");
 
             if (!commandsFunction.ContainsKey(command)) return;
+
+            if (message.Chat.Type == ChatType.Private && !allowedPrivateCommand.ContainsKey(command))
+                return;
             await commandsFunction[command].Invoke(message, dbUser, command, args);
         }
         public void RegisterCommand(string command, Func<Message, DbUser, string, string[], Task> func, string? desc = null, bool allowPrivateChat = true)
         {
             Log.Information("Registering command {c} - {desc}", command, desc ?? "No Description");
-            if (allowPrivateChat) allowedPrivateCommand[command] = allowPrivateChat;
             commandsFunction.Add(command, func);
+            if (allowPrivateChat && desc != null) 
+                allowedPrivateCommand[command] = desc;
+            
             if (desc != null)
                 botCommands.Add(new()
                 {
@@ -193,10 +203,19 @@ namespace KoriMiyohashi.Modules
         }
         public async Task SetMyCommandsAsync()
         {
+            List<BotCommand> privateCommand = new List<BotCommand>();
+            foreach (var item in allowedPrivateCommand)
+            {
+                privateCommand.Add(new()
+                {
+                    Command = item.Key,
+                    Description = item.Value,
+                });
+            }
             try
             {
+                await BotClient.SetMyCommandsAsync(privateCommand, new BotCommandScopeAllPrivateChats());
                 await BotClient.SetMyCommandsAsync(botCommands, new BotCommandScopeChat() { ChatId = Env.WORK_GROUP });
-                await BotClient.SetMyCommandsAsync(botCommands, new BotCommandScopeAllPrivateChats());
             }
             catch (Exception e)
             {

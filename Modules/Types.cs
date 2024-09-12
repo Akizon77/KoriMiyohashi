@@ -42,14 +42,14 @@ namespace KoriMiyohashi.Modules.Types
             return $"状态: {Status}\n" +
                 $"用户ID: {UserId}\n" +
                 $"标签: #{Tags}\n" +
-                $"推荐理由: {Description}\n" +
+                $"附言: {Description}\n" +
                 $"曲目数量: {Songs.Count}";
                 
         }
         public string ToHtmlString()
         {
             string text = $"标签: #{Tags}\n" +
-                    $"推荐理由: {Description.HtmlEscape()}\n" +
+                    $"附言: {Description.HtmlEscape()}\n" +
                     $"曲目数量: {Songs.Count}\n" +
                     "\n" +
                     $"当前曲目：";
@@ -84,8 +84,8 @@ namespace KoriMiyohashi.Modules.Types
         {
             string text = 
                 $"Tag: #{Tags}\n" +
-                $"附言: {Description}\n" +
-                $"曲目数量: {Songs.Count}\n";
+                $"附言: {Description}\n\n" +
+                $"曲目数量: {Songs.Count}";
             int i = 1;
             foreach (Song song in Songs)
             {

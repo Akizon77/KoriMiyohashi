@@ -22,12 +22,10 @@ namespace KoriMiyohashi.Handlers
 
         private async Task OnTextMessage(Message message, DbUser user, string arg3)
         {
-            var sub = repos.Submissions.Queryable()
-                .Includes(x => x.User)
-                .Includes(x => x.Songs)
-                .Where(x => x.Status != "Done")
-                .Where(x => x.Status != "CANCEL")
-                .Where(x => x.UserId == user.Id).First();
+            var subs = GetUnfinish(user);
+            Submission? sub = null;
+            if (subs.Count() > 0)
+                sub = subs.First();
             if (arg3.StartsWith("http"))
             {
                 var parsed = new Song();

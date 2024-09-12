@@ -18,17 +18,43 @@ namespace KoriMiyohashi.Handlers
             listener.RegisterCommand("start", AboutCommand);
             listener.RegisterCommand("newpost", NewPostCommand, "新投稿");
             listener.RegisterCommand("cancel", CancelPostCommand, "取消投稿");
+            listener.RegisterCommand("echo", EchoCommand, "传话",false);
+        }
+
+        private async Task EchoCommand(Message message, DbUser user, string arg3, string[] arg4)
+        {
+            var prevmsg = message.ReplyToMessage!;
+            var sub = repos.Submissions.Queryable()
+                .Includes(x => x.User)
+                .Includes(x => x.Songs)
+                .Where(x => x.GroupMessageId == prevmsg.MessageId)
+                .First();
+            try
+            {
+                if (!message.Text!.Contains(' ')) return;
+                try
+                {
+                    await bot.SendTextMessageAsync(sub.UserId
+                    , $"来自管理员的消息: {message.Text?.Split(' ', 2)[1]}", replyToMessageId: sub.SubmissionMessageId);
+                }
+                catch 
+                {
+                    await bot.SendTextMessageAsync(sub.UserId
+                    , $"来自管理员的消息: {message.Text?.Split(' ', 2)[1]}");
+                }
+                
+                _ = message.FastReply("消息已转发");
+            }
+            catch (NullReferenceException)
+            {
+            }
+            
         }
 
         private async Task CancelPostCommand(Message message, DbUser user, string arg3, string[] arg4)
         {
             message.DeleteLater();
-            var unfinished = repos.Submissions.Queryable()
-                .Includes(x => x.User)
-                .Includes(x => x.Songs)
-                .Where(x => x.Status != "DONE")
-                .Where(x => x.Status != "CANCEL")
-                .Where(x => x.UserId == user.Id).ToList();
+            var unfinished = GetUnfinish(user).ToList();
             if (unfinished.Count == 0)
             {
                 var stw = await message.FastReply("没有正在进行的投稿");
@@ -50,12 +76,8 @@ namespace KoriMiyohashi.Handlers
         private async Task NewPostCommand(Message message, DbUser user, string arg3, string[] arg4)
         {
             message.DeleteLater(1);
-            var unfinished = repos.Submissions.Queryable()
-                .Includes(x => x.User)
-                .Includes(x => x.Songs)
-                .Where(x => x.Status != "DONE")
-                .Where(x => x.Status != "CANCEL").First();
-            if (unfinished != null)
+            var unfinished = GetUnfinish(user);
+            if (unfinished.Count() != 0)
             {
                 var text = $"你还有未完成的投稿！";
                 var sent = await bot.SendTextMessageAsync(
@@ -63,7 +85,7 @@ namespace KoriMiyohashi.Handlers
                     parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
                 //删除上次的消息
                 sent.DeleteLater(5);
-                await RefreshMainPage(message.Chat.Id, unfinished);
+                await RefreshMainPage(message.Chat.Id, unfinished.First());
                 return;
             }
 
@@ -81,7 +103,7 @@ namespace KoriMiyohashi.Handlers
 
         private async Task AboutCommand(Message message, DbUser user, string command, string[] args)
         {
-            var text = $"<code>Kori Miyohashi</code> 是由 <a href=\"https://t.me/AkizonChan\">Mamo</a> 开发的 Telegram 频道投稿机器人。\n\n<code>Kori Miyohashi(聖代橋氷織)</code> 是 <code>Recette</code> 的游戏 <a href=\"https://store.steampowered.com/app/2374590/Sugar_Sweet_Temptation/?l=schinese\">しゅがてん！-sugarfull tempering- </a> 及其衍生作品的登场角色。\n\n当前版本 <code>{AppInfo.Version} - {Env.DB_TYPE}</code>";
+            var text = $"<code>Kori Miyohashi</code> 是由 <a href=\"https://t.me/AkizonChan\">Mamo</a> 开发的 Telegram 频道投稿机器人。\n\n<code>Kori Miyohashi(聖代橋氷織)</code> 是 <code>Recette</code> 的游戏 <a href=\"https://store.steampowered.com/app/2374590/Sugar_Sweet_Temptation/?l=schinese\">しゅがてん！-sugarfull tempering- </a> 及其衍生作品的登场角色。\n\n当前版本 <code>{AppInfo.Version}</code>";
             var sent = await bot.SendTextMessageAsync(message.Chat.Id, text,
                 disableWebPagePreview: true,
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyToMessageId: message.MessageId);

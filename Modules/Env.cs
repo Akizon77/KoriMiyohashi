@@ -15,6 +15,10 @@ namespace KoriMiyohashi.Modules
         public static string PROXY => EnvConfig.Get("PROXY", "socks5://127.0.0.1:12612");
         public static string TG_TOKEN => EnvConfig.Get("TG_TOKEN", "");
         public static long WORK_GROUP => ToLong("WORK_GROUP");
+        public static long CHANNEL_ID => ToLong("CHANNEL_ID");
+        public static string CHANNEL_LINK => EnvConfig.Get("CHANNEL_LINK");
+        public static string GROUP_LINK => EnvConfig.Get("GROUP_LINK");
+        public static long OWNER => ToLong("OWNER");
 
         static bool ToBool(string key,bool fallback = false)
         {

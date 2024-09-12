@@ -19,13 +19,76 @@ namespace KoriMiyohashi.Handlers
 
         private async Task OnAudio(Audio audio, DbUser user, string arg3, Message message)
         {
-            message.DeleteLater(5);
             Song song = new Song()
             {
                 Title = audio.Title ?? "无标题",
                 Artist = audio.Performer ?? "无艺术家",
                 FileId = audio.FileId,
             };
+            //群组内审核消息
+            if (message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Group || message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Supergroup)
+            {
+                //群组内回复消息
+                if (message.ReplyToMessage == null)
+                    return;
+                var sub = repos.Submissions.Queryable()
+                    .Where(x => x.GroupMessageId == message.ReplyToMessage.MessageId)
+                    .Includes(x => x.Songs)
+                    .Includes(x => x.User)
+                    .First();
+                // ADUIT/WAITING
+                // ADUIT/ADDFILE/{songid}
+                if (sub.Songs.Count == 1)
+                {
+                    if (string.IsNullOrEmpty(sub.Songs[0].FileId))
+                        sub.Songs[0].FileId = audio.FileId;
+                    else
+                        return;
+                    repos.Songs.Storageable(sub.Songs[0]).ExecuteCommand();
+                    sub = GetSubmission(sub.Id);
+                    await Approve(sub, user);
+                    return;
+                }
+                if (sub.Status == "ADUIT/WAITING")
+                {
+                    
+                    for (int i = 0; i < sub.Songs.Count; i++)
+                    {
+                        if (string.IsNullOrEmpty(sub.Songs[i].FileId))
+                        {
+                            sub.Songs[i].FileId = audio.FileId;
+                            repos.Songs.Storageable(sub.Songs[i]).ExecuteCommand();
+                            _ = message.FastReply($"{sub.Songs[i].Artist} - {sub.Songs[i].Title}\n已添加音频", replyMarkup: FastGenerator.GeneratorInlineButton([
+                                new(){
+                                    { "发错了?点击删除音频",$"aduit/delfile/{sub.Songs[i].Id}" }
+                                }]));
+                            var notFilled = sub.Songs.Where(x => string.IsNullOrEmpty(x.FileId)).ToList();
+                            if (notFilled.Count == 0)
+                                await Approve(sub, user);
+                            return;
+                        }
+                    }
+                }
+                else if (sub.Status.StartsWith("ADUIT/ADDFILE/"))
+                {
+                    var songid = int.Parse(sub.Status.Split('/')[2]);
+                    song = repos.Songs.Queryable().Where(x => x.Id == songid).First();
+                    song.FileId = audio.FileId;
+                    repos.Songs.Storageable(song).ExecuteCommand();
+                    _ = message.FastReply($"{song.Artist} - {song.Title}\n已添加音频", replyMarkup: FastGenerator.GeneratorInlineButton([
+                        new(){
+                             { "发错了?点击删除音频",$"aduit/delfile/{sub.Id}/{song.Id}" }
+                        }]));   
+                    var notFilled = sub.Songs.Where(x => string.IsNullOrEmpty(x.FileId)).ToList();
+                    if (notFilled.Count == 0)
+                        await Approve(sub, user);
+                    sub.Status = "ADUIT/WAITING";
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    return;
+                }
+
+            }
+            message.DeleteLater(5);
             var unfinish = GetUnfinish(user);
             //没有正在进行的投稿
             if (unfinish.Count() == 0)

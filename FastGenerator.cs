@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KoriMiyohashi.Modules.Types;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,12 +40,36 @@ namespace KoriMiyohashi
                     {"🎧添加/修改曲目","page/song" }
                 },
                 new(){
-                    { "🔍预览稿件","preview" },
+                    //{ "🔍预览稿件","preview" },
                     { "✅提交","submit"}
                 }
             ];
             return GeneratorInlineButton(pair);
         }
-    
+        
+
+        public static InlineKeyboardMarkup DefaultAduitMarkup(Submission sub)
+        {
+            Dictionary<string, string> dic = new();
+            if (sub.Songs.Count > 1)
+                dic.Add("🔍 详情", $"aduit/details/{sub.Id}");
+
+            foreach (var song in sub.Songs)
+                if (string.IsNullOrEmpty(song.FileId))
+                {
+                    dic.Add("➕ 添加文件", $"aduit/addfile/{sub.Id}");
+                    break;
+                }
+            return FastGenerator.GeneratorInlineButton([
+                new(){
+                            { "✅ 通过",$"aduit/approve/{sub.Id}" }
+                        },
+                        new (){
+                            { "❌ 拒绝",$"aduit/reject/{sub.Id}" },
+                            { "🔕 静默拒绝",$"aduit/slient/{sub.Id}" },
+                        },
+                        dic
+                ]);
+        }
     }
 }

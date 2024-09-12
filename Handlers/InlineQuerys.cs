@@ -28,41 +28,44 @@ namespace KoriMiyohashi.Handlers
 
         private async Task DefaultQuery(CallbackQuery query, DbUser user, string data)
         {
-            var sub = GetUnfinish(user).First();
+
+            Submission sub;
             switch (data)
             {
                 case "submit":
-                    ArgumentNullException.ThrowIfNull(nameof(sub));
+                    if (GetUnfinish(user).Count() == 0)
+                    {
+                        await bot.AnswerCallbackQueryAsync(query.Id, "没有正在进行的投稿", true);
+                        query.Message!.DeleteLater();
+                        return;
+                    }
+                    sub = GetUnfinish(user).First();
+                    if (sub.Songs.Count() == 0)
+                    {
+                        await bot.AnswerCallbackQueryAsync(query.Id, "请至少添加一首歌曲哦", true);
+                        return;
+                    }
                     //送审
                     sub.Status = "ADUIT/WAITING";
-                    Dictionary<string, string> dic = new();
-                    if (sub.Songs.Count > 1)
-                        dic = new()
-                        {
-                            { "详情",$"aduit/details/{sub.Id}" }
-                        };
-                    var inline = FastGenerator.GeneratorInlineButton([
-                        new(){
-                            { "✅ 通过",$"aduit/approve/{sub.Id}" }
-                        },
-                        new (){
-                            { "❌ 拒绝",$"aduit/reject/{sub.Id}" },
-                            { "🔕 静默拒绝",$"aduit/slient/{sub.Id}" },
-                        },
-                        dic
-                        ]);
+                    var inline = FastGenerator.DefaultAduitMarkup(sub);
                     var st = await SendOneAudioOrText(Env.WORK_GROUP, sub.Songs,sub.ToPubHtmlString(),replyMarkup:inline);
                     sub.GroupMessageId = st.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     sub = GetSubmission(sub.Id);
                     //告知
-                    query.Message!.DeleteLater();
-                    var st1 = await Publish(query.Message!.Chat.Id,sub);
+                    query.Message!.DeleteLater(1);
+                    var st1 = await Publish(query.Message!.Chat.Id,sub,suffix: "感谢您的投稿！您的稿件将在审核后予以处理。\n\n");
                     sub.SubmissionMessageId = st1.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     break;
                 case "preview":
-                    ArgumentNullException.ThrowIfNull(nameof(sub));
+                    if (GetUnfinish(user).Count() == 0)
+                    {
+                        await bot.AnswerCallbackQueryAsync(query.Id, "没有正在进行的投稿", true);
+                        query.Message!.DeleteLater();
+                        return;
+                    }
+                    sub = GetUnfinish(user).First();
                     await Publish(query.Message!.Chat.Id, sub);
                     
                     break;
@@ -80,19 +83,14 @@ namespace KoriMiyohashi.Handlers
 
         private async Task SwitchQuery(CallbackQuery query, DbUser user, string data)
         {
-            var sub = repos.Submissions.Queryable()
-                .Includes(x => x.User)
-                .Includes(x => x.Songs)
-                .Where(x => x.Status != "Done")
-                .Where(x => x.Status != "CANCEL")
-                .Where(x => x.UserId == user.Id).First();
-            if (sub is null)
+            if (GetUnfinish(user).Count() == 0)
             {
-                var stw = await query.Message!.FastReply("没有正在进行的投稿");
+                await bot.AnswerCallbackQueryAsync(query.Id, "没有正在进行的投稿", true);
                 query.Message!.DeleteLater();
-                stw.DeleteLater();
                 return;
             }
+            var sub = GetUnfinish(user).First();
+
             switch (data)
             {
                 case "switch/anonymous":
@@ -108,28 +106,26 @@ namespace KoriMiyohashi.Handlers
 
         private async Task PageQuery(CallbackQuery query, DbUser user, string data)
         {
-            var sub = repos.Submissions.Queryable()
-                .Includes(x => x.User)
-                .Includes(x => x.Songs)
-                .Where(x => x.Status != "Done")
-                .Where(x => x.Status != "CANCEL")
-                .Where(x => x.UserId == user.Id).First();
-            if (sub is null)
+            if (GetUnfinish(user).Count() == 0)
             {
-                var stw = await query.Message!.FastReply("没有正在进行的投稿");
+                await bot.AnswerCallbackQueryAsync(query.Id, "没有正在进行的投稿", true);
                 query.Message!.DeleteLater();
-                stw.DeleteLater();
                 return;
             }
+            var sub = GetUnfinish(user).First();
+            
             switch (data)
             {
                 case "page/tags":
+                    var dic = new Dictionary<string, string>();
+                    if (user.Id == Env.OWNER)
+                        dic.Add("每日推荐", "edit/tags/daily");
                     var markup = FastGenerator.GeneratorInlineButton([
                         new (){
                             { "🥇推荐","edit/tags/recommand"},
                             { "🎁赠予","edit/tags/gift"},
                             { "💬留言","edit/tags/message"},
-                        }
+                        },dic
                         ]);
                     _ = bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id, query.Message.MessageId,
                         markup);
@@ -190,19 +186,13 @@ namespace KoriMiyohashi.Handlers
 
         private async Task AddQuery(CallbackQuery query, DbUser user, string data)
         {
-            var sub = repos.Submissions.Queryable()
-                .Includes(x => x.User)
-                .Includes(x => x.Songs)
-                .Where(x => x.Status != "Done")
-                .Where(x => x.Status != "CANCEL")
-                .Where(x => x.UserId == user.Id).First();
-            if (sub is null)
+            if (GetUnfinish(user).Count() == 0)
             {
-                var stw = await query.Message!.FastReply("没有正在进行的投稿");
+                await bot.AnswerCallbackQueryAsync(query.Id, "没有正在进行的投稿", true);
                 query.Message!.DeleteLater();
-                stw.DeleteLater();
                 return;
             }
+            var sub = GetUnfinish(user).First();
 
 
             var paths = data.Split('/');
@@ -218,19 +208,13 @@ namespace KoriMiyohashi.Handlers
 
         private async Task EditQuery(CallbackQuery query, DbUser user, string data)
         {
-            var sub = repos.Submissions.Queryable()
-                .Includes(x => x.User)
-                .Includes(x => x.Songs)
-                .Where(x => x.Status != "Done")
-                .Where(x => x.Status != "CANCEL")
-                .Where(x => x.UserId == user.Id).First();
-            if (sub is null)
+            if (GetUnfinish(user).Count() == 0)
             {
-                var stw = await query.Message!.FastReply("没有正在进行的投稿");
+                await bot.AnswerCallbackQueryAsync(query.Id, "没有正在进行的投稿", true);
                 query.Message!.DeleteLater();
-                stw.DeleteLater();
                 return;
             }
+            var sub = GetUnfinish(user).First();
             switch (data)
             {
                 case "edit/tags/recommand":
@@ -247,9 +231,8 @@ namespace KoriMiyohashi.Handlers
                     break;
                 case "edit/description":
                     sub.Status = "Edit/Description";
-                    var tx = await bot.SendTextMessageAsync(query.Message!.Chat.Id, "发送一段话补充推荐理由吧");
+                    await bot.AnswerCallbackQueryAsync(query.Id, "发送一段话补充推荐理由吧", true);
                     repos.Submissions.Storageable(sub).ExecuteCommand();
-                    tx.DeleteLater(10);
                     return;
                 default:
                     break;
@@ -264,36 +247,36 @@ namespace KoriMiyohashi.Handlers
                 switch (action)
                 {
                     case "title":
-                        text = $"正在修改标题";
+                        text = $"正在修改标题，请直接发送文字，谢谢！";
                         sub.Status = $"Edit/Song/Title/{songId}";break;
                     case "artist":
-                        text = $"正在修改艺术家";
+                        text = $"正在修改艺术家，请直接发送文字，谢谢！";
                         sub.Status = $"Edit/Song/Artist/{songId}";break;
                     case "album":
-                        text = $"正在修改专辑";
+                        text = $"正在修改专辑，请直接发送文字，谢谢！";
                         sub.Status = $"Edit/Song/Album/{songId}"; break;
                     case "addFile":
-                        text = $"正在补充文件";
+                        text = $"正在为曲目添加音频，请直接发送音频，谢谢！";
                         sub.Status = $"Edit/Song/AddFile/{songId}"; break;
                     case "delete":
                         Song song = repos.Songs.Queryable().Where(x => x.Id == songId).First();
                         song.SubmissionId = 0;
                         await repos.Songs.Storageable(song).ExecuteCommandAsync();
-                        text = $"已移除曲目 <code>{song.Title} - {song.Artist}</code>";
+                        text = $"已移除曲目 {song.Title} - {song.Artist}";
 
-                        var st2 = await bot.SendTextMessageAsync(query.Message!.Chat.Id, text, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
-                        st2.DeleteLater();
+                        _ = bot.AnswerCallbackQueryAsync(query.Id, text, true);
+                        //var st2 = await bot.SendTextMessageAsync(query.Message!.Chat.Id, text, parseMode: Telegram.Bot.Types.Enums.ParseMode.Html);
+                        //st2.DeleteLater();
                         await repos.Submissions.Storageable(sub).ExecuteCommandAsync();
 
                         sub = GetSubmission(sub.Id);
 
-                        await RefreshMainPage(query.Message.Chat.Id, sub);
+                        await RefreshMainPage(query.Message!.Chat.Id, sub);
                         return;
                     default:
                         throw new InvalidOperationException($"无效的操作: {data}");
                 }
-                var st =await bot.SendTextMessageAsync(query.Message!.Chat.Id,text);
-                st.DeleteLater();
+                await bot.AnswerCallbackQueryAsync(query.Id, text, false);
                 repos.Submissions.Storageable(sub).ExecuteCommand();
                 return;
             }
