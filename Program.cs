@@ -19,9 +19,16 @@ new TextMessgae();
 new Audios();
 
 var listener = Hosting.GetRequiredService<Listener>();
+var repos = Hosting.GetRequiredService<Repos>();
 _ = listener.SetMyCommandsAsync();
-
-
+var owner = new DbUser()
+{
+    Id = Env.OWNER,
+    FullName = "管理员",
+    Aduit = true,
+    Owner = true,
+};
+repos.DbUsers.Storageable(owner).ExecuteCommand();
 Thread.Sleep(-1);
 
 

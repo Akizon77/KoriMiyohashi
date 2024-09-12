@@ -14,7 +14,9 @@ namespace KoriMiyohashi.Modules.Types
         [SugarColumn(IsPrimaryKey = true)]
         public long Id { get; set; }
         public string FullName { get; set; } = "";
-        public int Permissions { get; set; } = 1;
+        public bool Submit { get; set; } = true;
+        public bool Aduit { get; set; } = false;
+        public bool Owner { get; set; } = false;
     }
 
     public class Submission : MamoLib.Sql.SqlReopBase

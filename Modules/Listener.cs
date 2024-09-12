@@ -72,7 +72,15 @@ namespace KoriMiyohashi.Modules
                 chatID = message.Chat.Id;
                 user = message.From!;
                 dbUser = new DbUser() { Id = user.Id, FullName = user.GetFullName() };
-                repos.DbUsers.Storageable(dbUser).ExecuteCommand();
+                try
+                {
+                    repos.DbUsers.Updateable(dbUser).UpdateColumns(it => new { it.FullName}).ExecuteCommand();
+                }
+                catch
+                {
+                    repos.DbUsers.Storageable(dbUser).ExecuteCommand();
+                }
+
                 //处理纯文字、音频消息
                 try
                 {
