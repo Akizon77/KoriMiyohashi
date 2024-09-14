@@ -28,6 +28,11 @@ namespace KoriMiyohashi.Handlers
             //群组内审核消息
             if (message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Group || message.Chat.Type == Telegram.Bot.Types.Enums.ChatType.Supergroup)
             {
+                if (!user.Aduit)
+                {
+                    message.FastReply("权限不足").Result.DeleteLater();
+                    return;
+                }
                 //群组内回复消息
                 if (message.ReplyToMessage == null)
                     return;

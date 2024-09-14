@@ -255,8 +255,8 @@ namespace KoriMiyohashi.Handlers
             var sent = await bot.SendTextMessageAsync(message.Chat.Id, text,
                 disableWebPagePreview: true,
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.Html, replyToMessageId: message.MessageId);
-            message.DeleteLater(1);
-            sent.DeleteLater(60);
+            //message.DeleteLater(1);
+            //sent.DeleteLater(60);
 
             if (command == "start")
             {
