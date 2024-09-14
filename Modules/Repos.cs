@@ -51,7 +51,7 @@ namespace KoriMiyohashi.Modules
             Log.Debug("Database config: {@0}",cf);
             var DbClient = new SqlSugarClient(cf, db =>
             {
-                db.Aop.OnError = (e) => Log.Error(e, "Error executing SQL.");
+                db.Aop.OnError = (e) => Log.Warning(e, "Error executing SQL.");
             });
 
             if (!File.Exists(Env.DB_FILE) && Env.DB_TYPE == "sqlite")

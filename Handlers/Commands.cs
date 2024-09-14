@@ -1,5 +1,7 @@
 ﻿using KoriMiyohashi.Modules;
 using KoriMiyohashi.Modules.Types;
+using MamoLib.StringHelper;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -19,10 +23,142 @@ namespace KoriMiyohashi.Handlers
             listener.RegisterCommand("newpost", NewPostCommand, "新投稿");
             listener.RegisterCommand("cancel", CancelPostCommand, "取消投稿");
             listener.RegisterCommand("echo", EchoCommand, "传话",false);
+            listener.RegisterCommand("admins", AdminsCommand, "编辑管理员信息",false);
+            listener.RegisterCommand("list", ListCommand, "列出未审核稿件",false);
+        }
+
+        private async Task ListCommand(Message message, DbUser user, string arg3, string[] arg4)
+        {
+            if (!user.Aduit)
+            {
+                message.FastReply("权限不足").Result.DeleteLater();
+                message.DeleteLater();
+                return;
+            }
+
+            string text = GetPage(0);
+            List<InlineKeyboardButton> buttons = new();
+            buttons.Add(InlineKeyboardButton.WithCallbackData("🔄 Refresh", "list/page/0"));
+            if (GetUnfinish().Count() > 10)
+                buttons.Add(InlineKeyboardButton.WithCallbackData("▶️ Next Page", "list/page/1"));
+            if (text == "") text = "当前暂无未审核稿件";
+            await bot.SendTextMessageAsync(message.Chat.Id, text, replyToMessageId: message.MessageId, parseMode: ParseMode.Html, replyMarkup: new InlineKeyboardMarkup(buttons.ToArray()));
+            return;
+
+        }
+
+        private async Task AdminsCommand(Message message, DbUser sender, string command, string[] args)
+        {
+            if (!sender.Owner)
+            {
+                message.FastReply("权限不足").Result.DeleteLater();
+                message.DeleteLater();
+                return;
+            }
+            if (args.Count() < 2 && !args.Contains("list"))
+            {
+                Usage();
+                return;
+            }
+
+            var action = args[0];
+
+            if (action == "list")
+            {
+                List<DbUser> list = repos.DbUsers.Queryable().Where(x => x.Aduit == true).ToList();
+                string text = "当前管理员列表:\n";
+                foreach (var item in list)
+                {
+                    text += $"{item.FullName.HtmlEscape()}(<code>{item.Id}</code>)\n";
+                }
+                await message.FastReply(text);
+                return;
+            }
+            
+            long userid;
+            DbUser? user;
+
+            if (!long.TryParse(args[1], out userid))
+            {
+                Usage();
+                return;
+            }
+            
+            var l = repos.DbUsers.Queryable().Where(u => u.Id == userid).ToList();
+
+            if (l.Count == 1)
+            {
+                user = l.First();
+                switch (action)
+                {
+                    case "add":
+                        user.Aduit = true;
+                        repos.DbUsers.Storageable(user).ExecuteCommand();
+                        await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 已拥有管理员权限");
+                        return;
+                    case "remove":
+                        user.Aduit = false;
+                        repos.DbUsers.Storageable(user).ExecuteCommand();
+                        await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 不再拥有管理员权限");
+                        return;
+                    default:
+                        Usage();
+                        return;
+                }
+            }
+            else
+            {
+                user = new DbUser()
+                {
+                    Id = userid,
+                    FullName = $"{userid}",
+                };
+                switch (action)
+                {
+                    case "add":
+                        user.Aduit = true;
+                        repos.DbUsers.Storageable(user).ExecuteCommand();
+                        await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 已拥有管理员权限");
+                        return;
+                    case "remove":
+                        user.Aduit = false;
+                        repos.DbUsers.Storageable(user).ExecuteCommand();
+                        await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 不再拥有管理员权限");
+                        return;
+                    default:
+                        Usage();
+                        return;
+                }
+            }
+
+
+
+
+
+            void Usage()
+            {
+                var me = bot.GetMeAsync().Result;
+                message.FastReply($"<b>指令 {command}@{me.Username} 用法:</b>\n" +
+                                    $"\n" +
+                                    $"<code>/{command}@{me.Username} add {"<用户ID>".HtmlEscape()}</code> - 添加管理员\n" +
+                                    $"<code>/{command}@{me.Username} remove {"<用户ID>".HtmlEscape()}</code> - 添加管理员\n" +
+                                    $"<code>/{command}@{me.Username} list</code> - 添加管理员\n" +
+                                    $"\n" +
+                                    $"<b>示例</b>\n" +
+                                    $"<code>/{command}@{me.Username} add {sender.Id}</code> - 添加{sender.FullName.HtmlEscape()}为管理员")
+                                    .Result.DeleteLater();
+                message.DeleteLater();
+            }
         }
 
         private async Task EchoCommand(Message message, DbUser user, string arg3, string[] arg4)
         {
+            if (!user.Aduit)
+            {
+                message.FastReply("权限不足").Result.DeleteLater();
+                message.DeleteLater();
+                return; 
+            }
             var prevmsg = message.ReplyToMessage!;
             var sub = repos.Submissions.Queryable()
                 .Includes(x => x.User)
@@ -53,6 +189,12 @@ namespace KoriMiyohashi.Handlers
 
         private async Task CancelPostCommand(Message message, DbUser user, string arg3, string[] arg4)
         {
+            if (!user.Submit)
+            {
+                message.FastReply("权限不足").Result.DeleteLater();
+                message.DeleteLater();
+                return;
+            }
             message.DeleteLater();
             var unfinished = GetUnfinish(user).ToList();
             if (unfinished.Count == 0)
@@ -75,6 +217,12 @@ namespace KoriMiyohashi.Handlers
 
         private async Task NewPostCommand(Message message, DbUser user, string arg3, string[] arg4)
         {
+            if (!user.Submit)
+            {
+                message.FastReply("权限不足").Result.DeleteLater();
+                message.DeleteLater();
+                return;
+            }
             message.DeleteLater(1);
             var unfinished = GetUnfinish(user);
             if (unfinished.Count() != 0)

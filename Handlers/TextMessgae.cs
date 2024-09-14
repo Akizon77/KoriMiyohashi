@@ -22,6 +22,10 @@ namespace KoriMiyohashi.Handlers
 
         private async Task OnTextMessage(Message message, DbUser user, string arg3)
         {
+            if (message.Chat.Type != Telegram.Bot.Types.Enums.ChatType.Private)
+            {
+                return;
+            }
             var subs = GetUnfinish(user);
             Submission? sub = null;
             if (subs.Count() > 0)

@@ -1,10 +1,12 @@
 ﻿using KoriMiyohashi.Modules;
 using KoriMiyohashi.Modules.Types;
 using MamoLib.TgExtensions;
+using Microsoft.Extensions.Hosting;
 using System.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -12,6 +14,11 @@ namespace KoriMiyohashi.Handlers
     {
         private async Task AduitQuery(CallbackQuery query, DbUser user, string data)
         {
+            if (!user.Aduit)
+            {
+                await bot.AnswerCallbackQueryAsync(query.Id, "权限不足",true);
+                return;
+            }
             //STATUS: ADUIT/WAITING
             var args = data.Split('/');
             var action = args[1];
@@ -32,7 +39,7 @@ namespace KoriMiyohashi.Handlers
             {
                 case "approve":
                     await Approve(sub,user);
-                    break;
+                    return;
                 case "reject":
                     await FastAduit("拒绝", "REJECTED");
                     try
@@ -106,11 +113,36 @@ namespace KoriMiyohashi.Handlers
                 default:
                     throw new InvalidOperationException("无效的操作: "+data);
             }
-            throw new NotImplementedException();
 
             
         }
 
-        
+        private async Task ListQuery(CallbackQuery query, DbUser user, string data)
+        {
+            if (!user.Aduit)
+            {
+                await bot.AnswerCallbackQueryAsync(query.Id, "权限不足", true);
+                return;
+            }
+            await bot.AnswerCallbackQueryAsync(query.Id);
+            Message message = query.Message!;
+            int.TryParse(data.Split('/').Last(), out int page);
+            if (page < 0) return;
+            var body = GetPage(page);
+            if (body == "")
+            {
+                await message.FastEdit("暂无未审核消息", InlineKeyboardButton.WithCallbackData("🔄 Refresh", "list/page/0"));
+                return;
+            }
+            InlineKeyboardMarkup replyMarkup;
+            List<InlineKeyboardButton> buttons = new();
+            if (page > 0)
+                buttons.Add(InlineKeyboardButton.WithCallbackData("◀️ Prev Page", $"list/page/{page - 1}"));
+            buttons.Add(InlineKeyboardButton.WithCallbackData("🔄 Refresh", "list/page/0"));
+            if ((page + 1) * 10 < GetUnfinish().Count())
+                buttons.Add(InlineKeyboardButton.WithCallbackData("▶️ Next Page", $"list/page/{page + 1}"));
+            replyMarkup = new InlineKeyboardMarkup(buttons.ToArray());
+            await message.FastEdit("当前未审核的稿件有\n" + body, replyMarkup);
+        }
     }
 }

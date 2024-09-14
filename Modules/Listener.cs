@@ -65,21 +65,24 @@ namespace KoriMiyohashi.Modules
         private async Task OnUpdate(ITelegramBotClient client, Update update, CancellationToken token)
         {
             long chatID;
-            User user;
-            DbUser dbUser;
+            User user = update.Message?.From ?? update.CallbackQuery!.From;
+            DbUser dbUser = new DbUser() { Id = user.Id, FullName = user.GetFullName() };
+
+            try
+            {
+                repos.DbUsers.Insertable(dbUser).ExecuteCommand();
+            }
+            catch
+            {
+                repos.DbUsers.Updateable(dbUser).UpdateColumns(it => new { it.FullName }).ExecuteCommand();
+                //repos.DbUsers.Storageable(dbUser).ExecuteCommand();
+            }
+            dbUser = repos.DbUsers.Queryable().Where(x => x.Id == user.Id).First();
+
             if (update.Message is { } message)
             {
                 chatID = message.Chat.Id;
                 user = message.From!;
-                dbUser = new DbUser() { Id = user.Id, FullName = user.GetFullName() };
-                try
-                {
-                    repos.DbUsers.Updateable(dbUser).UpdateColumns(it => new { it.FullName}).ExecuteCommand();
-                }
-                catch
-                {
-                    repos.DbUsers.Storageable(dbUser).ExecuteCommand();
-                }
 
                 //处理纯文字、音频消息
                 try
@@ -133,8 +136,6 @@ namespace KoriMiyohashi.Modules
             {
                 chatID = query.Message!.Chat.Id;
                 user = query.From;
-                dbUser = new DbUser() { Id = user.Id, FullName = user.GetFullName() };
-                repos.DbUsers.Storageable(dbUser).ExecuteCommand();
                 //Inline查询
                 try
                 {

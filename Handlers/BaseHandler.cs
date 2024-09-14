@@ -11,6 +11,8 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Web;
 using System.Collections;
+using Microsoft.Extensions.Hosting;
+using MamoLib.StringHelper;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -33,6 +35,19 @@ namespace KoriMiyohashi.Handlers
             unfinished = unfinished.Where(item => !item.Status.StartsWith("ADUIT")).ToList();
             return unfinished;
         }
+        internal IEnumerable<Submission> GetUnfinish()
+        {
+            var unfinished = repos.Submissions.Queryable()
+                .Includes(x => x.User)
+                .Includes(x => x.Songs)
+                .Where(x => x.Status != "DONE")
+                .Where(x => x.Status != "CANCEL")
+                .Where(x => x.Status != "APPROVED")
+                .Where(x => x.Status != "REJECTED")
+                .ToList();
+            unfinished = unfinished.Where(item => !item.Status.StartsWith("ADUIT")).ToList();
+            return unfinished;
+        }
 
         internal Submission GetSubmission(int id)
         {
@@ -41,6 +56,35 @@ namespace KoriMiyohashi.Handlers
                 .Includes(x => x.Songs)
                 .Where(x => x.Id == id).First();
             return unfinished;
+        }
+
+        public string GetPage(int page)
+        {
+            // 从数据库中查询所有未通过审核的帖子
+            var posts = repos.Submissions.Queryable()
+                .Includes(x => x.User)
+                .Includes(x => x.Songs)
+                .Where(x => x.Status != "DONE")
+                .Where(x => x.Status != "CANCEL")
+                .Where(x => x.Status != "APPROVED")
+                .Where(x => x.Status != "REJECTED")
+                .Where(x => x.GroupMessageId != null)
+                .ToList();
+                
+            string text = "";
+            int i = 1;
+            if (posts.Count < page * 10) page = 0;
+            // 遍历所有帖子，将属于指定页面范围的帖子链接添加到文本中
+            posts.ForEach(x =>
+            {
+                if (page * 10 < i && i <= (page + 1) * 10)
+                {
+                    // 如果帖子在指定的页面范围内，将其链接以特定格式添加到文本中
+                    text += $"<a href=\"{Env.GROUP_LINK}/{x.GroupMessageId}\">{i}.{x.Songs[0].Title.HtmlEscape()}</a>\n";
+                }
+                i++;
+            });
+            return text;
         }
 
         internal async Task<Message> SendGroupMedia(long chatId, IEnumerable<InputMediaAudio> media,

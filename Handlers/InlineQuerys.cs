@@ -23,7 +23,9 @@ namespace KoriMiyohashi.Handlers
             listener.RegisterInlineQuery("switch", SwitchQuery);
             listener.RegisterInlineQuery("", DefaultQuery);
             listener.RegisterInlineQuery("aduit", AduitQuery);
+            listener.RegisterInlineQuery("list", ListQuery);
         }
+
 
 
         private async Task DefaultQuery(CallbackQuery query, DbUser user, string data)
@@ -45,6 +47,20 @@ namespace KoriMiyohashi.Handlers
                         await bot.AnswerCallbackQueryAsync(query.Id, "请至少添加一首歌曲哦", true);
                         return;
                     }
+                    //直接发布权限
+                    if (user.Owner)
+                    {
+                        await query.Message!.FastEdit(FastGenerator.GeneratorInlineButton([
+                            new(){
+                                { "◀️ 您可以直接发布稿件","page/main" }
+                            },
+                            new (){
+                                { "直接发布","submit/pubdirect" },
+                                { "审核后发布","submit/aduit"}
+                            }
+                            ]));
+                        return;
+                    }
                     //送审
                     sub.Status = "ADUIT/WAITING";
                     var inline = FastGenerator.DefaultAduitMarkup(sub);
@@ -56,6 +72,30 @@ namespace KoriMiyohashi.Handlers
                     query.Message!.DeleteLater(1);
                     var st1 = await Publish(query.Message!.Chat.Id,sub,suffix: "感谢您的投稿！您的稿件将在审核后予以处理。\n\n");
                     sub.SubmissionMessageId = st1.MessageId;
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    break;
+                case "submit/pubdirect":
+                    sub = GetUnfinish(user).First();
+                    sub.Status = "APPROVED";
+                    var st2 = await Publish(Env.CHANNEL_ID, sub);
+                    await query.Message!.FastReply($"稿件已发布 {Env.CHANNEL_LINK}/{st2.MessageId}");
+                    query.Message!.DeleteLater(1);
+                    sub.ChannelMessageId = st2.MessageId;
+                    sub.GroupMessageId = 0;
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    break;
+                case "submit/aduit":
+                    sub = GetUnfinish(user).First();
+                    sub.Status = "ADUIT/WAITING";
+                    var inline1 = FastGenerator.DefaultAduitMarkup(sub);
+                    var st3 = await SendOneAudioOrText(Env.WORK_GROUP, sub.Songs, sub.ToPubHtmlString(), replyMarkup: inline1);
+                    sub.GroupMessageId = st3.MessageId;
+                    repos.Submissions.Storageable(sub).ExecuteCommand();
+                    sub = GetSubmission(sub.Id);
+                    //告知
+                    query.Message!.DeleteLater(1);
+                    var st4 = await Publish(query.Message!.Chat.Id, sub, suffix: "感谢您的投稿！您的稿件将在审核后予以处理。\n\n");
+                    sub.SubmissionMessageId = st4.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     break;
                 case "preview":
