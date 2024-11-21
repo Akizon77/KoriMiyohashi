@@ -1,7 +1,7 @@
 # Kori Miyohashi: Telegram Channel Submission Bot
 
 > [!NOTE]  
-> Kori Miyohashi (Seidaibashi Koori) is a character from the game [Sugar Sweet Temptation](https://store.steampowered.com/app/2374590/Sugar_Sweet_Temptation) by Recette and its derivative works.
+> Kori Miyohashi (聖代橋氷織) is a character from the game [Sugar Sweet Temptation](https://store.steampowered.com/app/2374590/Sugar_Sweet_Temptation) by Recette and its derivative works.
 
 ## Quick Start
 
