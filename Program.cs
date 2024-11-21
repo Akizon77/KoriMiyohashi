@@ -1,7 +1,5 @@
 ﻿using KoriMiyohashi.Modules;
 using KoriMiyohashi.Modules.Types;
-using System.Threading;
-using Telegram.Bot.Types;
 using KoriMiyohashi.Handlers;
 
 Log.Information("Kori Miyohashi is a Telegram channel submission bot developed by Mamo. Current Build {0}", AppInfo.Version);

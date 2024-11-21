@@ -1,8 +1,6 @@
 ﻿using KoriMiyohashi.Modules.Types;
-using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 
 namespace KoriMiyohashi.Modules
@@ -13,7 +11,6 @@ namespace KoriMiyohashi.Modules
         {
             if (!url.Contains("qq.com")) return;
 
-            // 解析URL获取查询参数
             Uri uri = new Uri(url);
             string query = uri.Query;
             System.Collections.Specialized.NameValueCollection queryParameters =
@@ -22,23 +19,18 @@ namespace KoriMiyohashi.Modules
             // 如果没有提取到songmid，返回原文章对象
             if (id is null) return;
 
-            // 设置文章链接
             song.Link = $"https://i.y.qq.com/v8/playsong.html?songmid={id}";
-
-            // 定义正则表达式，用于从页面源码中提取数据
+            // 正则
             string pattern = @"<\/div><script crossorigin=""anonymous"">window\.__ssrFirstPageData__ =([\s\S]*?)<\/script>";
 
-            // 发起HTTP请求获取页面源码
             HttpClient httpClient = new();
             var body = httpClient.GetStringAsync(url).Result;
 
-            // 使用正则表达式匹配所需数据
             MatchCollection matches = Regex.Matches(body, pattern);
             JObject jobj = new();
 
             try
             {
-                // 提取并解析匹配到的数据
                 var l1 = "</div><script crossorigin=\"anonymous\">window.__ssrFirstPageData__ =".Length;
                 var l2 = "</script>".Length;
                 foreach (Match match in matches)
@@ -53,14 +45,13 @@ namespace KoriMiyohashi.Modules
             }
             catch { }
 
-            // 尝试从解析的数据中提取文章标题
-
+            // 标题
             try
             {
                 song.Title = jobj["songList"]![0]!["title"]!.ToString();
             }
             catch { }
-            // 尝试从解析的数据中提取歌手信息
+            // 歌手
             try
             {
                 string singer = "";
@@ -74,7 +65,7 @@ namespace KoriMiyohashi.Modules
                     song.Artist = "未知艺术家";
                 else if (singer.Length > 1)
                 {
-                    // 去除最后一个字符（多余的逗号）
+                    // 多余的逗号
                     singer = singer[..(singer.Length - 1)];
                     song.Artist = singer;
                 }
@@ -98,30 +89,24 @@ namespace KoriMiyohashi.Modules
         public static void ParseNeteaseMusic(string url, ref Song song)
         {
             if (!url.Contains("163")) return;
-            // 从URL中解析出查询参数
             Uri uri = new Uri(url);
             string query = uri.Query;
             System.Collections.Specialized.NameValueCollection queryParameters =
                 System.Web.HttpUtility.ParseQueryString(query);
             string? id = queryParameters["id"];
 
-            // 如果没有解析出id，则直接返回原始的Post对象
             if (id is null) return;
-
-            // 设置帖子的链接
             song.Link = $"https://music.163.com/song?id={id}";
 
-            // 使用HttpClient获取歌曲详情
             HttpClient client = new HttpClient();
             var s = client.GetAsync($"http://music.163.com/api/song/detail/?id={id}&ids=%5B{id}%5D").Result;
             var jo = JObject.Parse(s.Content.ReadAsStringAsync().Result);
 
-            // 尝试解析歌曲标题
             try
             {
                 song.Title = jo["songs"]![0]!["name"]!.ToString();
 
-                // 如果有翻译的歌曲名，则添加到标题中
+                // 翻译
                 try
                 {
                     if (jo["songs"]![0]!["transName"] != null)
@@ -132,7 +117,7 @@ namespace KoriMiyohashi.Modules
             }
             catch { }
 
-            // 尝试解析歌手信息
+            // 歌手
             try
             {
                 string singer = "";
@@ -141,12 +126,11 @@ namespace KoriMiyohashi.Modules
                 {
                     singer += item["name"]!.ToString() + "、";
                 }
-                // 如果没有歌手信息，则设置作者为null
                 if (singer == "")
                     song.Artist = "未知艺术家";
                 else if (singer.Length > 1)
                 {
-                    // 去除最后一个字符（多余的逗号）并设置作者
+                    // 多余的逗号
                     singer = singer[..(singer.Length - 1)];
                     song.Artist = singer;
                 }

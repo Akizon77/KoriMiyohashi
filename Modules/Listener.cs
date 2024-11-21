@@ -1,6 +1,5 @@
 ﻿using System.Net.Http;
 using System.Net;
-using System.Threading;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using Telegram.Bot;

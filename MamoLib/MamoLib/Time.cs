@@ -8,9 +8,7 @@
         /// <returns>当前时间的Unix时间戳，以毫秒为单位</returns>
         public static long GetNow()
         {
-            // 获取当前的UTC时间
             DateTime currentTime = DateTime.UtcNow;
-            // 将当前时间转换为Unix时间戳（毫秒）
             long timestamp = ((DateTimeOffset)currentTime).ToUnixTimeMilliseconds();
             return timestamp;
         }
