@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    image: akizon77/kori_miyohashi:latest
+    container_name: kori_miyohashi
+    environment:
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DEBUG=${DEBUG:-false}
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - DB_FILE=${DB_FILE:-./KoriMiyohashi.db}
+      - USE_PROXY=${USE_PROXY:-false}
+      - PROXY=${PROXY:-socks5://127.0.0.1:12612}
+      - TG_TOKEN=${TG_TOKEN}
+      - WORK_GROUP=${WORK_GROUP}
+      - CHANNEL_ID=${CHANNEL_ID}
+      - CHANNEL_LINK=${CHANNEL_LINK}
+      - GROUP_LINK=${GROUP_LINK}
+      - OWNER=${OWNER}

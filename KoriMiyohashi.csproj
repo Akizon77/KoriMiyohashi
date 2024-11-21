@@ -1,12 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<TempFile>$(IntermediateOutputPath)GitCommitHash.txt</TempFile>
+	</PropertyGroup>
+
+	<PropertyGroup>
 		<BuildNumber>$([System.DateTime]::Now.ToString(HHmm))</BuildNumber>
 		<VersionPrefix>$([System.DateTime]::Now.ToString(yy.M.d))</VersionPrefix>
 		<Version>$(VersionPrefix).$(BuildNumber)</Version>
 	</PropertyGroup>
 	
   <PropertyGroup>
+	<IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
