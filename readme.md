@@ -1,3 +1,4 @@
+[English](https://github.com/Akizon77/KoriMiyohashi/blob/main/readme_en.md)
 # Kori Miyohashi 是 Telegram 频道投稿机器人。
 
 > [!NOTE]  
