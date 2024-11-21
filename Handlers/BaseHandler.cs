@@ -1,18 +1,11 @@
 ﻿using KoriMiyohashi.Modules;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Telegram.Bot.Types;
-using Telegram.Bot;
 using KoriMiyohashi.Modules.Types;
+using MamoLib.StringHelper;
+using System.Web;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using System.Web;
-using System.Collections;
-using Microsoft.Extensions.Hosting;
-using MamoLib.StringHelper;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -35,6 +28,7 @@ namespace KoriMiyohashi.Handlers
             unfinished = unfinished.Where(item => !item.Status.StartsWith("ADUIT")).ToList();
             return unfinished;
         }
+
         internal IEnumerable<Submission> GetUnfinish()
         {
             var unfinished = repos.Submissions.Queryable()
@@ -70,7 +64,7 @@ namespace KoriMiyohashi.Handlers
                 .Where(x => x.Status != "REJECTED")
                 .Where(x => x.GroupMessageId != null)
                 .ToList();
-                
+
             string text = "";
             int i = 1;
             if (posts.Count < page * 10) page = 0;
@@ -109,11 +103,10 @@ namespace KoriMiyohashi.Handlers
             }
             catch
             {
-                var messages = await bot.SendMediaGroupAsync(chatId, media,replyToMessageId:replyTo);
+                var messages = await bot.SendMediaGroupAsync(chatId, media, replyToMessageId: replyTo);
                 _ = bot.EditMessageReplyMarkupAsync(chatId, messages.Last().MessageId, inlineKeyboardMarkup);
                 return messages.First();
             }
-            
         }
 
         internal async Task<Message> RefreshMainPage(long chatId, Submission sub)
@@ -152,7 +145,7 @@ namespace KoriMiyohashi.Handlers
             return st;
         }
 
-        internal async Task<Message> SendOneAudioOrText(long chatId,List<Song> songs, string textOrCaption = "", ParseMode parseMode = ParseMode.Html,IReplyMarkup? replyMarkup = null)
+        internal async Task<Message> SendOneAudioOrText(long chatId, List<Song> songs, string textOrCaption = "", ParseMode parseMode = ParseMode.Html, IReplyMarkup? replyMarkup = null)
         {
             string? fileIds = null;
 
@@ -208,8 +201,7 @@ namespace KoriMiyohashi.Handlers
                 };
                 text = "<b>文件投稿</b>\n\n" + text + $"文件ID:\n<code>{song.FileId}</code>";
                 if (!string.IsNullOrEmpty(song.Link))
-                    text +=  $"\n链接: {HttpUtility.HtmlAttributeEncode(song.Link)}";
-                
+                    text += $"\n链接: {HttpUtility.HtmlAttributeEncode(song.Link)}";
             }
 
             var inline = FastGenerator.GeneratorInlineButton([
@@ -238,7 +230,7 @@ namespace KoriMiyohashi.Handlers
             return st;
         }
 
-        internal async Task<Message> Publish(long chatId, Submission sub,int? replyTo = null,string suffix = "")
+        internal async Task<Message> Publish(long chatId, Submission sub, int? replyTo = null, string suffix = "")
         {
             if (sub.Songs.Count == 0)
             {
@@ -260,7 +252,7 @@ namespace KoriMiyohashi.Handlers
                 {
                     return await bot.SendTextMessageAsync(chatId
                         , suffix + sub.ToPubHtmlString(),
-                        replyToMessageId:replyTo,
+                        replyToMessageId: replyTo,
                        parseMode: ParseMode.Html);
                 }
                 catch
@@ -284,7 +276,6 @@ namespace KoriMiyohashi.Handlers
                     replyToMessageId: replyTo,
                     caption: suffix + sub.ToPubHtmlString());
                 }
-                
             }
             else //if (sub.Songs.Count > 1)
             {
@@ -293,13 +284,13 @@ namespace KoriMiyohashi.Handlers
                 {
                     inputMediaAudio.Add(new InputMediaAudio(InputFile.FromFileId(s)));
                 }
-                return await SendGroupMedia(chatId, inputMediaAudio,sub.ToPubHtmlString());
+                return await SendGroupMedia(chatId, inputMediaAudio, sub.ToPubHtmlString());
             }
         }
-    
-        internal async Task Approve(Submission sub,DbUser user)
+
+        internal async Task Approve(Submission sub, DbUser user)
         {
-            await bot.EditMessageReplyMarkupAsync(Env.WORK_GROUP, sub.GroupMessageId?? throw new NullReferenceException()
+            await bot.EditMessageReplyMarkupAsync(Env.WORK_GROUP, sub.GroupMessageId ?? throw new NullReferenceException()
                     , FastGenerator.GeneratorInlineButton([
                         new(){ { $"{user.FullName}({user.Id}): 通过",TimeStamp.GetNow().ToString()} }]));
             sub.Status = "APPROVED";
@@ -325,9 +316,5 @@ namespace KoriMiyohashi.Handlers
             repos.Submissions.Storageable(sub).ExecuteCommand();
             return;
         }
-
-
     }
-
-
 }

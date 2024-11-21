@@ -13,13 +13,14 @@ namespace KoriMiyohashi
             {
                 var dict = pairs[i];
                 keyboardInline.Add(new List<InlineKeyboardButton>());
-                foreach (var kvp in dict) 
+                foreach (var kvp in dict)
                 {
-                    keyboardInline[i].Add(InlineKeyboardButton.WithCallbackData(kvp.Key,kvp.Value));
+                    keyboardInline[i].Add(InlineKeyboardButton.WithCallbackData(kvp.Key, kvp.Value));
                 }
             }
             return new InlineKeyboardMarkup(keyboardInline);
         }
+
         public static InlineKeyboardMarkup DefaultSubmissionMarkup()
         {
             List<Dictionary<string, string>> pair = [
@@ -41,7 +42,6 @@ namespace KoriMiyohashi
             ];
             return GeneratorInlineButton(pair);
         }
-        
 
         public static InlineKeyboardMarkup DefaultAduitMarkup(Submission sub)
         {

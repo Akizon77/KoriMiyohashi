@@ -1,12 +1,5 @@
-﻿using KoriMiyohashi.Modules;
-using KoriMiyohashi.Modules.Types;
+﻿using KoriMiyohashi.Modules.Types;
 using MamoLib.StringHelper;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -14,7 +7,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KoriMiyohashi.Handlers
 {
-    public class Commands :  BaseHandler
+    public class Commands : BaseHandler
     {
         public Commands()
         {
@@ -22,9 +15,9 @@ namespace KoriMiyohashi.Handlers
             listener.RegisterCommand("start", AboutCommand);
             listener.RegisterCommand("newpost", NewPostCommand, "新投稿");
             listener.RegisterCommand("cancel", CancelPostCommand, "取消投稿");
-            listener.RegisterCommand("echo", EchoCommand, "传话",false);
-            listener.RegisterCommand("admins", AdminsCommand, "编辑管理员信息",false);
-            listener.RegisterCommand("list", ListCommand, "列出未审核稿件",false);
+            listener.RegisterCommand("echo", EchoCommand, "传话", false);
+            listener.RegisterCommand("admins", AdminsCommand, "编辑管理员信息", false);
+            listener.RegisterCommand("list", ListCommand, "列出未审核稿件", false);
         }
 
         private async Task ListCommand(Message message, DbUser user, string arg3, string[] arg4)
@@ -44,7 +37,6 @@ namespace KoriMiyohashi.Handlers
             if (text == "") text = "当前暂无未审核稿件";
             await bot.SendTextMessageAsync(message.Chat.Id, text, replyToMessageId: message.MessageId, parseMode: ParseMode.Html, replyMarkup: new InlineKeyboardMarkup(buttons.ToArray()));
             return;
-
         }
 
         private async Task AdminsCommand(Message message, DbUser sender, string command, string[] args)
@@ -74,7 +66,7 @@ namespace KoriMiyohashi.Handlers
                 await message.FastReply(text);
                 return;
             }
-            
+
             long userid;
             DbUser? user;
 
@@ -83,7 +75,7 @@ namespace KoriMiyohashi.Handlers
                 Usage();
                 return;
             }
-            
+
             var l = repos.DbUsers.Queryable().Where(u => u.Id == userid).ToList();
 
             if (l.Count == 1)
@@ -96,11 +88,13 @@ namespace KoriMiyohashi.Handlers
                         repos.DbUsers.Storageable(user).ExecuteCommand();
                         await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 已拥有管理员权限");
                         return;
+
                     case "remove":
                         user.Aduit = false;
                         repos.DbUsers.Storageable(user).ExecuteCommand();
                         await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 不再拥有管理员权限");
                         return;
+
                     default:
                         Usage();
                         return;
@@ -120,20 +114,18 @@ namespace KoriMiyohashi.Handlers
                         repos.DbUsers.Storageable(user).ExecuteCommand();
                         await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 已拥有管理员权限");
                         return;
+
                     case "remove":
                         user.Aduit = false;
                         repos.DbUsers.Storageable(user).ExecuteCommand();
                         await message.FastReply($"<a href=\"tg://user?id={user.Id}\">{user.FullName.HtmlEscape()}</a> 不再拥有管理员权限");
                         return;
+
                     default:
                         Usage();
                         return;
                 }
             }
-
-
-
-
 
             void Usage()
             {
@@ -157,7 +149,7 @@ namespace KoriMiyohashi.Handlers
             {
                 message.FastReply("权限不足").Result.DeleteLater();
                 message.DeleteLater();
-                return; 
+                return;
             }
             var prevmsg = message.ReplyToMessage!;
             var sub = repos.Submissions.Queryable()
@@ -173,18 +165,17 @@ namespace KoriMiyohashi.Handlers
                     await bot.SendTextMessageAsync(sub.UserId
                     , $"来自管理员的消息: {message.Text?.Split(' ', 2)[1]}", replyToMessageId: sub.SubmissionMessageId);
                 }
-                catch 
+                catch
                 {
                     await bot.SendTextMessageAsync(sub.UserId
                     , $"来自管理员的消息: {message.Text?.Split(' ', 2)[1]}");
                 }
-                
+
                 _ = message.FastReply("消息已转发");
             }
             catch (NullReferenceException)
             {
             }
-            
         }
 
         private async Task CancelPostCommand(Message message, DbUser user, string arg3, string[] arg4)
@@ -212,7 +203,6 @@ namespace KoriMiyohashi.Handlers
             repos.Submissions.Storageable(unfinished).ExecuteCommand();
             var st = await message.FastReply("已取消投稿任务");
             st.DeleteLater();
-
         }
 
         private async Task NewPostCommand(Message message, DbUser user, string arg3, string[] arg4)
@@ -246,7 +236,6 @@ namespace KoriMiyohashi.Handlers
                 replyMarkup: FastGenerator.DefaultSubmissionMarkup());
             submission.SubmissionMessageId = st.MessageId;
             repos.Submissions.Storageable(submission).ExecuteCommand();
-
         }
 
         private async Task AboutCommand(Message message, DbUser user, string command, string[] args)

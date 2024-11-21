@@ -9,6 +9,7 @@
         {
             _action = action;
         }
+
         public Defer(Action<object?> func)
         {
             _func = func;

@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
 
-
 namespace MamoLib
 {
     public static class EnvConfig
@@ -14,10 +13,12 @@ namespace MamoLib
             LoadEnvFileVariables(Envs, ".env");
             Dictionary = new ReadOnlyDictionary<string, string>(Envs);
         }
+
         /// <summary>
         /// Environments variable
         /// </summary>
         public static IReadOnlyDictionary<string, string> Dictionary { get; private set; }
+
         public static string Get(string key, string fallback = "")
         {
             if (Envs.TryGetValue(key, out string? value))

@@ -1,11 +1,11 @@
-﻿using System.Net.Http;
-using System.Net;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types;
-using Telegram.Bot;
+﻿using KoriMiyohashi.Modules.Types;
 using MamoLib.TgExtensions;
-using KoriMiyohashi.Modules.Types;
+using System.Net;
+using System.Net.Http;
+using Telegram.Bot;
 using Telegram.Bot.Exceptions;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace KoriMiyohashi.Modules
 {
@@ -13,7 +13,7 @@ namespace KoriMiyohashi.Modules
     {
         public TelegramBotClient BotClient { get; set; }
         public User Me { get; set; }
-        
+
         private Repos repos { get; set; }
 
         public Listener(Repos repo)
@@ -49,7 +49,7 @@ namespace KoriMiyohashi.Modules
 
             BotClient.StartReceiving(async (c, u, t) =>
             {
-                _ =  OnUpdate(c, u, t);
+                _ = OnUpdate(c, u, t);
             }, OnError);
 
             Log.Information("Successfully logged in as {fullname}(@{username}) ", Me.GetFullName(), Me.Username);
@@ -99,17 +99,19 @@ namespace KoriMiyohashi.Modules
                         }
                         else
                         {
-                            await OnText(message,dbUser,message.Text);
+                            await OnText(message, dbUser, message.Text);
                         }
                     }
                     //音频
                     else if (update.Message.Audio is { } audio)
                     {
-                        Log.Information("{name}({id}): {title} - {artist}", user.GetFullName(), user.Id, audio.Title,audio.Performer);
-                        await OnAudio(message.Audio!, dbUser,message.Caption!,message);
+                        Log.Information("{name}({id}): {title} - {artist}", user.GetFullName(), user.Id, audio.Title, audio.Performer);
+                        await OnAudio(message.Audio!, dbUser, message.Caption!, message);
                     }
                 }
+
                 #region 异常捕获
+
                 catch (NotSupportedException ex)
                 {
                     message.DeleteLater();
@@ -129,7 +131,8 @@ namespace KoriMiyohashi.Modules
                     var tx = await message.FastReply($"被玩坏了 {ex.GetType().Name}: {ex.Message}");
                     tx.DeleteLater();
                 }
-                #endregion
+
+                #endregion 异常捕获
             }
             else if (update.CallbackQuery is { } query)
             {
@@ -141,18 +144,18 @@ namespace KoriMiyohashi.Modules
                     if (query.Data != null && query.Data.Length > 0)
                     {
                         Log.Debug("{name}({id}): {text}", user.GetFullName(), user.Id, query.Data);
-                        await OnInlineQuery(query,dbUser, query.Data);
+                        await OnInlineQuery(query, dbUser, query.Data);
                         _ = BotClient.AnswerCallbackQueryAsync(query.Id);
                     }
                 }
-                catch ( RequestException e )
+                catch (RequestException e)
                 {
                     Log.Warning(e, "Exception during making request.");
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Unable to process Inline message.{@0}",query);
-                    _ = BotClient.SendTextMessageAsync(query.Message.Chat.Id,"被玩坏了喵\n"+e.Message);
+                    Log.Error(e, "Unable to process Inline message.{@0}", query);
+                    _ = BotClient.SendTextMessageAsync(query.Message.Chat.Id, "被玩坏了喵\n" + e.Message);
                 }
             }
             else
@@ -160,23 +163,28 @@ namespace KoriMiyohashi.Modules
                 return;
             }
         }
+
         #region 文字消息
 
-        
-        List<Func<Message, DbUser, string, Task>> textFunc = new();
-        async Task OnText(Message message, DbUser dbUser, string text)
+        private List<Func<Message, DbUser, string, Task>> textFunc = new();
+
+        private async Task OnText(Message message, DbUser dbUser, string text)
         {
             foreach (var item in textFunc)
             {
-                await item.Invoke(message,dbUser,text);
+                await item.Invoke(message, dbUser, text);
             }
         }
+
         public void RegisterTextMessage(Func<Message, DbUser, string, Task> func)
         {
             textFunc.Add(func);
         }
-        #endregion
+
+        #endregion 文字消息
+
         #region 指令
+
         private List<BotCommand> botCommands = new();
         private Dictionary<string, string> allowedPrivateCommand = new();
         private Dictionary<string, Func<Message, DbUser, string, string[], Task>> commandsFunction = new();
@@ -195,13 +203,14 @@ namespace KoriMiyohashi.Modules
                 return;
             await commandsFunction[command].Invoke(message, dbUser, command, args);
         }
+
         public void RegisterCommand(string command, Func<Message, DbUser, string, string[], Task> func, string? desc = null, bool allowPrivateChat = true)
         {
             Log.Information("Registering command {c} - {desc}", command, desc ?? "No Description");
             commandsFunction.Add(command, func);
-            if (allowPrivateChat && desc != null) 
+            if (allowPrivateChat && desc != null)
                 allowedPrivateCommand[command] = desc;
-            
+
             if (desc != null)
                 botCommands.Add(new()
                 {
@@ -209,6 +218,7 @@ namespace KoriMiyohashi.Modules
                     Description = desc,
                 });
         }
+
         public async Task SetMyCommandsAsync()
         {
             List<BotCommand> privateCommand = new List<BotCommand>();
@@ -230,10 +240,14 @@ namespace KoriMiyohashi.Modules
                 Log.Warning(e, "Unable to regiser command.");
             }
         }
-        #endregion
+
+        #endregion 指令
+
         #region Inline回调
+
         private Dictionary<string, Func<CallbackQuery, DbUser, string, Task>> inlineQueryFunction = new();
-        async Task OnInlineQuery(CallbackQuery query, DbUser dbUser, string data)
+
+        private async Task OnInlineQuery(CallbackQuery query, DbUser dbUser, string data)
         {
             foreach (var item in inlineQueryFunction.Keys)
             {
@@ -243,28 +257,32 @@ namespace KoriMiyohashi.Modules
                 }
             }
         }
+
         public void RegisterInlineQuery(string startWith, Func<CallbackQuery, DbUser, string, Task> func)
         {
             Log.Debug("Registering callback {c}.", startWith);
             inlineQueryFunction.Add(startWith, func);
         }
-        #endregion
+
+        #endregion Inline回调
+
         #region 音频
 
+        private List<Func<Audio, DbUser, string, Message, Task>> audioFunc = new();
 
-        List<Func<Audio, DbUser,string,Message, Task>> audioFunc = new();
-        async Task OnAudio(Audio audio, DbUser dbUser,string caption,Message rawMessage)
+        private async Task OnAudio(Audio audio, DbUser dbUser, string caption, Message rawMessage)
         {
             foreach (var item in audioFunc)
             {
-                await item.Invoke(audio, dbUser,caption,rawMessage);
+                await item.Invoke(audio, dbUser, caption, rawMessage);
             }
         }
+
         public void RegisterAudioMessage(Func<Audio, DbUser, string, Message, Task> func)
         {
             audioFunc.Add(func);
         }
-        #endregion
 
+        #endregion 音频
     }
 }

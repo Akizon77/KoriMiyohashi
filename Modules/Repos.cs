@@ -1,5 +1,5 @@
-﻿using MamoLib.Sql;
-using KoriMiyohashi.Modules.Types;
+﻿using KoriMiyohashi.Modules.Types;
+using MamoLib.Sql;
 using SqlSugar;
 
 namespace KoriMiyohashi.Modules
@@ -22,7 +22,8 @@ namespace KoriMiyohashi.Modules
             Submissions.InitHeader();
             Log.Debug("DB Init Done.");
         }
-        ISqlSugarClient Connect()
+
+        private ISqlSugarClient Connect()
         {
             Log.Debug("Connecting Database.");
             DbType dbType;
@@ -48,7 +49,7 @@ namespace KoriMiyohashi.Modules
                 DbType = dbType,
                 IsAutoCloseConnection = true
             };
-            Log.Debug("Database config: {@0}",cf);
+            Log.Debug("Database config: {@0}", cf);
             var DbClient = new SqlSugarClient(cf, db =>
             {
                 db.Aop.OnError = (e) => Log.Warning(e, "Error executing SQL.");
@@ -64,7 +65,7 @@ namespace KoriMiyohashi.Modules
             return DbClient;
         }
     }
-    
+
     public class DbUserRepo(ISqlSugarClient content) : BaseRepository<DbUser>(content)
     { }
 

@@ -1,20 +1,13 @@
 ﻿using KoriMiyohashi.Modules;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Telegram.Bot.Types;
-using Telegram.Bot;
 using KoriMiyohashi.Modules.Types;
-using MamoLib.StringHelper;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace KoriMiyohashi.Handlers
 {
     public partial class InlineQuerys : BaseHandler
     {
-
         public InlineQuerys()
         {
             listener.RegisterInlineQuery("edit", EditQuery);
@@ -26,11 +19,8 @@ namespace KoriMiyohashi.Handlers
             listener.RegisterInlineQuery("list", ListQuery);
         }
 
-
-
         private async Task DefaultQuery(CallbackQuery query, DbUser user, string data)
         {
-
             Submission sub;
             switch (data)
             {
@@ -64,16 +54,17 @@ namespace KoriMiyohashi.Handlers
                     //送审
                     sub.Status = "ADUIT/WAITING";
                     var inline = FastGenerator.DefaultAduitMarkup(sub);
-                    var st = await SendOneAudioOrText(Env.WORK_GROUP, sub.Songs,sub.ToPubHtmlString(),replyMarkup:inline);
+                    var st = await SendOneAudioOrText(Env.WORK_GROUP, sub.Songs, sub.ToPubHtmlString(), replyMarkup: inline);
                     sub.GroupMessageId = st.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     sub = GetSubmission(sub.Id);
                     //告知
                     query.Message!.DeleteLater(1);
-                    var st1 = await Publish(query.Message!.Chat.Id,sub,suffix: "感谢您的投稿！您的稿件将在审核后予以处理。\n\n");
+                    var st1 = await Publish(query.Message!.Chat.Id, sub, suffix: "感谢您的投稿！您的稿件将在审核后予以处理。\n\n");
                     sub.SubmissionMessageId = st1.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     break;
+
                 case "submit/pubdirect":
                     sub = GetUnfinish(user).First();
                     sub.Status = "APPROVED";
@@ -84,6 +75,7 @@ namespace KoriMiyohashi.Handlers
                     sub.GroupMessageId = 0;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     break;
+
                 case "submit/aduit":
                     sub = GetUnfinish(user).First();
                     sub.Status = "ADUIT/WAITING";
@@ -98,6 +90,7 @@ namespace KoriMiyohashi.Handlers
                     sub.SubmissionMessageId = st4.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     break;
+
                 case "preview":
                     if (GetUnfinish(user).Count() == 0)
                     {
@@ -107,8 +100,9 @@ namespace KoriMiyohashi.Handlers
                     }
                     sub = GetUnfinish(user).First();
                     await Publish(query.Message!.Chat.Id, sub);
-                    
+
                     break;
+
                 default:
                     break;
             }
@@ -116,7 +110,7 @@ namespace KoriMiyohashi.Handlers
             {
                 int songId = int.Parse(data.Split('/')[2]);
                 Song song = repos.Songs.Queryable().Where(x => x.Id == songId).First();
-                await bot.SendAudioAsync(query.Message!.Chat.Id,InputFile.FromFileId(song.FileId!));
+                await bot.SendAudioAsync(query.Message!.Chat.Id, InputFile.FromFileId(song.FileId!));
                 return;
             }
         }
@@ -153,7 +147,7 @@ namespace KoriMiyohashi.Handlers
                 return;
             }
             var sub = GetUnfinish(user).First();
-            
+
             switch (data)
             {
                 case "page/tags":
@@ -170,9 +164,11 @@ namespace KoriMiyohashi.Handlers
                     _ = bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id, query.Message.MessageId,
                         markup);
                     break;
+
                 case "page/main":
-                    await RefreshMainPage(query.Message!.Chat.Id,sub);
+                    await RefreshMainPage(query.Message!.Chat.Id, sub);
                     break;
+
                 case "page/song":
                     string text = $"当前投稿包含 <code>{sub.Songs.Count}</code> 个曲目\n\n" +
                         $"如需添加曲目，请发送<b>音频文件</b>或者<b>音乐平台链接</b>。\n" +
@@ -191,8 +187,8 @@ namespace KoriMiyohashi.Handlers
                         var songs = new Dictionary<string, string>();
                         for (int i = 0; i < sub.Songs.Count; i++)
                         {
-                            songs[$"{i+1}"] = $"page/songdetail/{i}";
-                            text += $"\n{i+1} - {sub.Songs[i].Title}";
+                            songs[$"{i + 1}"] = $"page/songdetail/{i}";
+                            text += $"\n{i + 1} - {sub.Songs[i].Title}";
                         }
                         inline = FastGenerator.GeneratorInlineButton([
                             new(){
@@ -211,6 +207,7 @@ namespace KoriMiyohashi.Handlers
                     sub.SubmissionMessageId = st.MessageId;
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     break;
+
                 default:
                     // page/songdetail
                     if (data.StartsWith("page/songdetail/"))
@@ -233,7 +230,6 @@ namespace KoriMiyohashi.Handlers
                 return;
             }
             var sub = GetUnfinish(user).First();
-
 
             var paths = data.Split('/');
             switch (paths[1])
@@ -260,20 +256,25 @@ namespace KoriMiyohashi.Handlers
                 case "edit/tags/recommand":
                     sub.Tags = "推荐";
                     break;
+
                 case "edit/tags/gift":
                     sub.Tags = "赠予";
                     break;
+
                 case "edit/tags/message":
                     sub.Tags = "留言";
                     break;
+
                 case "edit/tags/daily":
                     sub.Tags = "每日推荐";
                     break;
+
                 case "edit/description":
                     sub.Status = "Edit/Description";
                     await bot.AnswerCallbackQueryAsync(query.Id, "发送一段话补充推荐理由吧", true);
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     return;
+
                 default:
                     break;
             }
@@ -288,10 +289,10 @@ namespace KoriMiyohashi.Handlers
                 {
                     case "title":
                         text = $"正在修改标题，请直接发送文字，谢谢！";
-                        sub.Status = $"Edit/Song/Title/{songId}";break;
+                        sub.Status = $"Edit/Song/Title/{songId}"; break;
                     case "artist":
                         text = $"正在修改艺术家，请直接发送文字，谢谢！";
-                        sub.Status = $"Edit/Song/Artist/{songId}";break;
+                        sub.Status = $"Edit/Song/Artist/{songId}"; break;
                     case "album":
                         text = $"正在修改专辑，请直接发送文字，谢谢！";
                         sub.Status = $"Edit/Song/Album/{songId}"; break;
@@ -313,6 +314,7 @@ namespace KoriMiyohashi.Handlers
 
                         await RefreshMainPage(query.Message!.Chat.Id, sub);
                         return;
+
                     default:
                         throw new InvalidOperationException($"无效的操作: {data}");
                 }

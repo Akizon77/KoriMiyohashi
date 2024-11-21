@@ -8,6 +8,7 @@ namespace KoriMiyohashi.Modules.Types
     {
         [SugarColumn(IsPrimaryKey = true)]
         public long Id { get; set; }
+
         public string FullName { get; set; } = "";
         public bool Submit { get; set; } = true;
         public bool Aduit { get; set; } = false;
@@ -18,19 +19,27 @@ namespace KoriMiyohashi.Modules.Types
     {
         [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
         public int Id { get; set; }
+
         public bool Anonymous { get; set; } = false;
         public int SubmissionMessageId { get; set; }
+
         [SugarColumn(IsNullable = true)]
         public int? GroupMessageId { get; set; }
+
         [SugarColumn(IsNullable = true)]
         public int? ChannelMessageId { get; set; }
+
         public string Status { get; set; } = "WAITING";
         public long UserId { get; set; }
+
         [Navigate(NavigateType.OneToOne, nameof(UserId))]
         public DbUser User { get; set; }
+
         public string Tags { get; set; } = "推荐";
+
         [SugarColumn(ColumnDataType = "LONGTEXT")]
         public string Description { get; set; } = "";
+
         [Navigate(NavigateType.OneToMany, nameof(Song.SubmissionId))]
         public List<Song> Songs { get; set; }
 
@@ -41,8 +50,8 @@ namespace KoriMiyohashi.Modules.Types
                 $"标签: #{Tags}\n" +
                 $"附言: {Description}\n" +
                 $"曲目数量: {Songs.Count}";
-                
         }
+
         public string ToHtmlString()
         {
             string text = $"标签: #{Tags}\n" +
@@ -66,7 +75,7 @@ namespace KoriMiyohashi.Modules.Types
             if (Anonymous)
             {
                 return $"状态: <code>{Status}</code>\n" +
-                    $"投稿人: 匿名\n" + 
+                    $"投稿人: 匿名\n" +
                     text;
             }
             else
@@ -79,7 +88,7 @@ namespace KoriMiyohashi.Modules.Types
 
         public string ToPubHtmlString()
         {
-            string text = 
+            string text =
                 $"Tag: #{Tags}\n" +
                 $"附言: {Description}\n\n" +
                 $"曲目数量: {Songs.Count}";
@@ -98,32 +107,36 @@ namespace KoriMiyohashi.Modules.Types
             }
             if (Anonymous)
             {
-                return 
+                return
                     $"投稿人: 匿名\n" +
                     text;
             }
             else
             {
-                return 
+                return
                     $"投稿人: <a href=\"tg://user?id={User.Id}\">{User.FullName.HtmlEscape()}</a>\n" +
                     text;
             }
         }
-
     }
+
     public class Song : MamoLib.Sql.SqlReopBase
     {
-        [SugarColumn(IsIdentity = true,IsPrimaryKey = true)]
+        [SugarColumn(IsIdentity = true, IsPrimaryKey = true)]
         public int Id { get; set; }
+
         public int SubmissionId { get; set; }
+
         [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT")]
         public string Title { get; set; } = "未知标题";
+
         [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT")]
         public string Artist { get; set; } = "未知作曲家";
-        [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT",IsNullable = true)]
+
+        [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT", IsNullable = true)]
         public string? Link { get; set; }
+
         [SqlSugar.SugarColumn(ColumnDataType = "LONGTEXT", IsNullable = true)]
         public string? FileId { get; set; }
-
     }
 }

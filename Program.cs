@@ -1,6 +1,6 @@
-﻿using KoriMiyohashi.Modules;
+﻿using KoriMiyohashi.Handlers;
+using KoriMiyohashi.Modules;
 using KoriMiyohashi.Modules.Types;
-using KoriMiyohashi.Handlers;
 
 Log.Information("Kori Miyohashi is a Telegram channel submission bot developed by Mamo. Current Build {0}", AppInfo.Version);
 Log.Information("Kori Miyohashi is a character featured in Recette's game {0} and its spin-offs.", "しゅがてん！-sugarfull tempering-");
@@ -28,5 +28,3 @@ var owner = new DbUser()
 };
 repos.DbUsers.Storageable(owner).ExecuteCommand();
 Thread.Sleep(-1);
-
-

@@ -1,12 +1,9 @@
-﻿using KoriMiyohashi.Modules;
-using KoriMiyohashi.Modules.Types;
+﻿using KoriMiyohashi.Modules.Types;
 using MamoLib.TgExtensions;
-using Microsoft.Extensions.Hosting;
 using System.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -16,7 +13,7 @@ namespace KoriMiyohashi.Handlers
         {
             if (!user.Aduit)
             {
-                await bot.AnswerCallbackQueryAsync(query.Id, "权限不足",true);
+                await bot.AnswerCallbackQueryAsync(query.Id, "权限不足", true);
                 return;
             }
             //STATUS: ADUIT/WAITING
@@ -38,8 +35,9 @@ namespace KoriMiyohashi.Handlers
             switch (action)
             {
                 case "approve":
-                    await Approve(sub,user);
+                    await Approve(sub, user);
                     return;
+
                 case "reject":
                     await FastAduit("拒绝", "REJECTED");
                     try
@@ -51,18 +49,21 @@ namespace KoriMiyohashi.Handlers
                         await bot.SendTextMessageAsync(sub.UserId, $"感谢您的投稿！遗憾地通知您，您的稿件未能通过审核。");
                     }
                     return;
+
                 case "slient":
                     await FastAduit("静默拒绝", "REJECTED");
                     return;
+
                 case "details":
-                    await Publish(query.Message!.Chat.Id, sub,replyTo: query.Message!.MessageId);
-                    return ;
+                    await Publish(query.Message!.Chat.Id, sub, replyTo: query.Message!.MessageId);
+                    return;
+
                 case "addfile":
                     var dic = new Dictionary<string, string>();
                     for (int i = 0; i < sub.Songs.Count; i++)
                     {
                         if (string.IsNullOrEmpty(sub.Songs[i].FileId))
-                            dic.Add((i+1).ToString(), $"aduit/song/{sub.Id}/{sub.Songs[i].Id}");
+                            dic.Add((i + 1).ToString(), $"aduit/song/{sub.Id}/{sub.Songs[i].Id}");
                     }
                     var inline = FastGenerator.GeneratorInlineButton([
                         new(){
@@ -76,8 +77,9 @@ namespace KoriMiyohashi.Handlers
                         },
                         dic
                         ]);
-                    await bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id,query.Message.MessageId,inline);
+                    await bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id, query.Message.MessageId, inline);
                     return;
+
                 case "delfile":
                     var songid0 = int.Parse(args[3]);
                     var song0 = repos.Songs.Queryable().Where(x => x.Id == songid0).First();
@@ -85,9 +87,11 @@ namespace KoriMiyohashi.Handlers
                     repos.Songs.Storageable(song0).ExecuteCommand();
                     query.Message!.DeleteLater(1);
                     return;
+
                 case "mainpage":
                     await bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id, query.Message.MessageId, FastGenerator.DefaultAduitMarkup(sub));
                     return;
+
                 case "song":
                     var songid = int.Parse(args[3]);
                     var song = repos.Songs.Queryable().Where(x => x.Id == songid).First();
@@ -107,14 +111,13 @@ namespace KoriMiyohashi.Handlers
                     keyboardInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData($"标题:{titleTrimmed}", $"{TimeStamp.GetNow()}") });
                     keyboardInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithCallbackData($"艺术家:{artistTrimmed}", $"{TimeStamp.GetNow()}") });
                     keyboardInline.Add(new List<InlineKeyboardButton>() { InlineKeyboardButton.WithUrl($"使用音频回复此消息(点击搜索)", $"https://google.com/search?q={HttpUtility.UrlEncode($"{song.Artist} {song.Title}")}") });
-                    
+
                     await bot.EditMessageReplyMarkupAsync(query.Message!.Chat.Id, query.Message.MessageId, new InlineKeyboardMarkup(keyboardInline));
                     return;
-                default:
-                    throw new InvalidOperationException("无效的操作: "+data);
-            }
 
-            
+                default:
+                    throw new InvalidOperationException("无效的操作: " + data);
+            }
         }
 
         private async Task ListQuery(CallbackQuery query, DbUser user, string data)

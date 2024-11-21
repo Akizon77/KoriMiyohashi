@@ -1,13 +1,5 @@
 ﻿using KoriMiyohashi.Modules;
 using KoriMiyohashi.Modules.Types;
-using MamoLib.StringHelper;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -35,7 +27,7 @@ namespace KoriMiyohashi.Handlers
                 var parsed = new Song();
                 Parser.ParseQQMusic(arg3, ref parsed);
                 Parser.ParseNeteaseMusic(arg3, ref parsed);
-                Parser.ParseSpotify(arg3,ref parsed);
+                Parser.ParseSpotify(arg3, ref parsed);
                 //存在投稿的情况
                 if (sub != null)
                 {
@@ -46,7 +38,7 @@ namespace KoriMiyohashi.Handlers
                         Title = parsed.Title,
                         Artist = parsed.Artist,
                         SubmissionId = sub.Id,
-                        Link = string.IsNullOrEmpty(parsed.Link)?arg3: parsed.Link,
+                        Link = string.IsNullOrEmpty(parsed.Link) ? arg3 : parsed.Link,
                     };
                     repos.Songs.Insertable(song).ExecuteCommand();
                     sub = GetSubmission(sub.Id);
@@ -82,7 +74,7 @@ namespace KoriMiyohashi.Handlers
                     message.DeleteLater(1);
                     await RefreshMainPage(message.Chat.Id, sub);
                 }
-                else if(sub.Status.StartsWith("Edit/Song/"))
+                else if (sub.Status.StartsWith("Edit/Song/"))
                 {
                     var arg = sub.Status.Split('/');
                     var action = arg[2];
@@ -91,11 +83,11 @@ namespace KoriMiyohashi.Handlers
                     switch (action)
                     {
                         case "Title":
-                            song.Title = arg3;break;
+                            song.Title = arg3; break;
                         case "Artist":
                             song.Artist = arg3; break;
                         case "Album":
-                            //song. = arg3; break;
+                        //song. = arg3; break;
                         default:
                             break;
                     }
@@ -103,7 +95,7 @@ namespace KoriMiyohashi.Handlers
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     repos.Songs.Storageable(song).ExecuteCommand();
                     message.DeleteLater(1);
-                    await NavigateToSongPage(message.Chat.Id,sub,songId);
+                    await NavigateToSongPage(message.Chat.Id, sub, songId);
                 }
                 else if (sub.Status == "WAITING")
                 {
@@ -114,7 +106,7 @@ namespace KoriMiyohashi.Handlers
                 return;
             }
             message.DeleteLater(10);
-            var st1 = await bot.SendTextMessageAsync(message.Chat.Id,$"可以使用以下方式投稿哦~\n\n" +
+            var st1 = await bot.SendTextMessageAsync(message.Chat.Id, $"可以使用以下方式投稿哦~\n\n" +
                 $"- 发送音频文件(可在Telegram内直接播放)\n" +
                 $"- 发送音乐平台分享链接\n" +
                 $"- 使用 /newpost 创建空白投稿");

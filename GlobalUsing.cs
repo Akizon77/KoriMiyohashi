@@ -1,14 +1,14 @@
-﻿global using System;
-global using System.Collections.Generic;
-global using System.Linq;
-global using System.Text;
-global using System.Threading.Tasks;
-global using System.Reflection;
-global using KoriMiyohashi;
-global using Serilog;
+﻿global using KoriMiyohashi;
 global using MamoLib;
+global using Serilog;
+global using System;
+global using System.Collections.Generic;
 global using System.IO;
+global using System.Linq;
+global using System.Reflection;
+global using System.Text;
 global using System.Threading;
+global using System.Threading.Tasks;
 
 namespace KoriMiyohashi
 {
@@ -30,7 +30,5 @@ namespace KoriMiyohashi
         }
 
         public static string Version => Assembly.GetEntryAssembly()!.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
-
     }
 }
-

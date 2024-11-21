@@ -12,6 +12,7 @@
             long timestamp = ((DateTimeOffset)currentTime).ToUnixTimeMilliseconds();
             return timestamp;
         }
+
         /// <summary>
         /// 将时间戳转换为DateTime对象。
         /// </summary>
@@ -23,6 +24,7 @@
             DateTime timestampDateTime = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime;
             return timestampDateTime;
         }
+
         /// <summary>
         /// 将 1d 转化为TimeSpan
         /// </summary>

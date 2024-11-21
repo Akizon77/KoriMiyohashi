@@ -1,12 +1,6 @@
-﻿using KoriMiyohashi.Modules;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Telegram.Bot.Types;
+﻿using KoriMiyohashi.Modules.Types;
 using Telegram.Bot;
-using KoriMiyohashi.Modules.Types;
+using Telegram.Bot.Types;
 
 namespace KoriMiyohashi.Handlers
 {
@@ -56,7 +50,6 @@ namespace KoriMiyohashi.Handlers
                 }
                 if (sub.Status == "ADUIT/WAITING")
                 {
-                    
                     for (int i = 0; i < sub.Songs.Count; i++)
                     {
                         if (string.IsNullOrEmpty(sub.Songs[i].FileId))
@@ -83,7 +76,7 @@ namespace KoriMiyohashi.Handlers
                     _ = message.FastReply($"{song.Artist} - {song.Title}\n已添加音频", replyMarkup: FastGenerator.GeneratorInlineButton([
                         new(){
                              { "发错了?点击删除音频",$"aduit/delfile/{sub.Id}/{song.Id}" }
-                        }]));   
+                        }]));
                     var notFilled = sub.Songs.Where(x => string.IsNullOrEmpty(x.FileId)).ToList();
                     if (notFilled.Count == 0)
                         await Approve(sub, user);
@@ -91,7 +84,6 @@ namespace KoriMiyohashi.Handlers
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     return;
                 }
-
             }
             message.DeleteLater(5);
             var unfinish = GetUnfinish(user);
@@ -108,14 +100,13 @@ namespace KoriMiyohashi.Handlers
                 sub = GetSubmission(subid);
 
                 var st = await bot.SendAudioAsync(
-                    message.Chat.Id,InputFile.FromFileId(song.FileId),
-                    caption:"欢迎使用音频文件投稿\n" + sub.ToHtmlString(),
-                    parseMode:Telegram.Bot.Types.Enums.ParseMode.Html,
-                    replyMarkup:FastGenerator.DefaultSubmissionMarkup());
+                    message.Chat.Id, InputFile.FromFileId(song.FileId),
+                    caption: "欢迎使用音频文件投稿\n" + sub.ToHtmlString(),
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                    replyMarkup: FastGenerator.DefaultSubmissionMarkup());
 
                 sub.SubmissionMessageId = st.MessageId;
                 repos.Submissions.Storageable(sub).ExecuteCommand();
-
             }
             //存在进行中的投稿
             else
@@ -132,7 +123,7 @@ namespace KoriMiyohashi.Handlers
                     sub.Status = "WAITING";
                     repos.Submissions.Storageable(sub).ExecuteCommand();
                     sub = GetSubmission(sub.Id);
-                    await RefreshMainPage(message.Chat.Id,sub);
+                    await RefreshMainPage(message.Chat.Id, sub);
                     return;
                 }
                 //添加曲目
@@ -163,9 +154,9 @@ namespace KoriMiyohashi.Handlers
                 {
                     st = await bot.SendAudioAsync(message.Chat.Id,
                         InputFile.FromFileId(fileIds),
-                        caption:sub.ToHtmlString(),
-                        parseMode:Telegram.Bot.Types.Enums.ParseMode.Html,
-                        replyMarkup:FastGenerator.DefaultSubmissionMarkup());
+                        caption: sub.ToHtmlString(),
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        replyMarkup: FastGenerator.DefaultSubmissionMarkup());
                 }
 
                 sub.SubmissionMessageId = st.MessageId;

@@ -1,7 +1,7 @@
-﻿using Telegram.Bot.Types;
-using Telegram.Bot;
+﻿using KoriMiyohashi.Modules;
 using MamoLib.TgExtensions;
-using KoriMiyohashi.Modules;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -17,7 +17,8 @@ namespace KoriMiyohashi
         }
 
         public static void DeleteLater(this Message message, int second = 15) => TgExtensions.DeleteLater(Bot, message, second);
-        public async static Task<Message> FastReply(this Message message, string text, ParseMode parseMode = ParseMode.Html, IReplyMarkup? replyMarkup = null)
+
+        public static async Task<Message> FastReply(this Message message, string text, ParseMode parseMode = ParseMode.Html, IReplyMarkup? replyMarkup = null)
         {
             try
             {
@@ -35,7 +36,6 @@ namespace KoriMiyohashi
             await Bot.EditMessageTextAsync(message.Chat.Id, message.MessageId, text, parseMode: ParseMode.Html);
         }
 
-
         /// <summary>
         /// 快速编辑消息
         /// </summary>
@@ -47,6 +47,7 @@ namespace KoriMiyohashi
             using var _ = new Defer(_ => { });
             await Bot.EditMessageReplyMarkupAsync(message.Chat.Id, message.MessageId, replyMarkup: reply);
         }
+
         /// <summary>
         /// 快速编辑消息
         /// </summary>
