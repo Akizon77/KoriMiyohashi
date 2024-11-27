@@ -1,5 +1,6 @@
+# Kori Miyohashi 是 Telegram 频道投稿机器人
+
 [English](https://github.com/Akizon77/KoriMiyohashi/blob/main/readme_en.md)
-# Kori Miyohashi 是 Telegram 频道投稿机器人。
 
 > [!NOTE]  
 > Kori Miyohashi(聖代橋氷織) 是 Recette 的游戏 [しゅがてん！-sugarfull tempering-](https://store.steampowered.com/app/2374590/Sugar_Sweet_Temptation/?l=schinese)  及其衍生作品的登场角色。
@@ -13,7 +14,7 @@ docker run -d --name kori-miyohashi \
     -e TG_TOKEN=TOKEN \
     -e WORK_GROUP=YOUR_GROUP_ID \
     -e CHANNEL_ID=YOUR_CHANNEL_ID \
-    -e CHANNEL_LINK=HANNEL_LINK \
+    -e CHANNEL_LINK=CHANNEL_LINK \
     -e GROUP_LINK=GROUP_LINK \
     akizon77/kori_miyohashi:latest
 ```
@@ -51,6 +52,7 @@ docker logs -f kori-miyohashi
 - **OWNER**: 最高管理员的用户 ID。拥有所有权限。
 
 ## 手动构建镜像
+
 ### 修改脚本内的变量
 
 确保你根据自己的需求调整以下变量：
@@ -68,10 +70,12 @@ bash build-docker.sh
 ```
 
 ## 手动编译
+>
 > [!NOTE]  
 > 需要.NET 8 SDK 环境
 
 恢复项目的依赖项
+
 ```bash
 dotnet restore
 ```
@@ -82,9 +86,9 @@ dotnet restore
 dotnet publish -c Release -o ./builds
 ```
 
-# License
+## License
 
-```
+```plaintext
 Copyright (c) 2024 akizon77
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -93,6 +97,3 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
-
-
-
