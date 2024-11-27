@@ -67,15 +67,18 @@ namespace KoriMiyohashi.Modules
             User user = update.Message?.From ?? update.CallbackQuery!.From;
             DbUser dbUser = new DbUser() { Id = user.Id, FullName = user.GetFullName() };
 
-            try
+            var existingUser = repos.DbUsers.Queryable().First(u => u.Id == dbUser.Id);
+
+            if (existingUser == null)
             {
                 repos.DbUsers.Insertable(dbUser).ExecuteCommand();
             }
-            catch
+            else
             {
-                repos.DbUsers.Updateable(dbUser).UpdateColumns(it => new { it.FullName }).ExecuteCommand();
-                //repos.DbUsers.Storageable(dbUser).ExecuteCommand();
+                existingUser.FullName = dbUser.FullName;
+                repos.DbUsers.Updateable(existingUser).UpdateColumns(it => new { it.FullName }).ExecuteCommand();
             }
+
             dbUser = repos.DbUsers.Queryable().Where(x => x.Id == user.Id).First();
 
             if (update.Message is { } message)
