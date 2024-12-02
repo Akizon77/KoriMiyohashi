@@ -66,7 +66,7 @@ namespace KoriMiyohashi.Modules
             long chatID;
             User user = update.Message?.From ?? update.CallbackQuery!.From;
             DbUser dbUser = new DbUser() { Id = user.Id, FullName = user.GetFullName() };
-
+            if (user.Id == 777000) return;
             var existingUser = repos.DbUsers.Queryable().First(u => u.Id == dbUser.Id);
 
             if (existingUser == null)

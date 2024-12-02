@@ -90,7 +90,7 @@ namespace KoriMiyohashi.Modules.Types
         {
             string text =
                 $"Tag: #{Tags}\n" +
-                $"附言: {Description.HtmlEscape()}\n\n" +
+                $"附言: {(string.IsNullOrEmpty(Description.HtmlEscape()) ? "无" : Description.HtmlEscape())}\n\n" +
                 $"曲目数量: {Songs.Count}";
             int i = 1;
             foreach (Song song in Songs)
