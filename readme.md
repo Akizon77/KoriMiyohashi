@@ -58,15 +58,13 @@ docker logs -f kori-miyohashi
 确保你根据自己的需求调整以下变量：
 
 - **IMAGE_NAME**: 设定镜像的名称。例如，`kori_miyohashi`。
-- **REPO_NAME**: 设定仓库名称，可以是 Docker Hub 用户名或私有仓库地址。为空意味着进行本地构建。
-- **TAG**: 设定版本标签。例如，`latest` 表示最新版本。
 
 ### 运行脚本
 
 在终端中运行以下命令来执行脚本，从而构建镜像：
 
 ```bash
-bash build-docker.sh
+docker build -t $(IMAGE_NAME) .
 ```
 
 ## 手动编译
@@ -84,16 +82,4 @@ dotnet restore
 
 ```bash
 dotnet publish -c Release -o ./builds
-```
-
-## License
-
-```plaintext
-Copyright (c) 2024 akizon77
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
