@@ -199,7 +199,10 @@ namespace KoriMiyohashi.Modules
                 }
 
             }
-            finally { }
+            catch (Exception e)
+            {
+                Log.Warning("无法解析平台信息: {0},{1}", e.Message,url);
+            }
         }
         [Obsolete("已合并，请使用Parse")]
         public static void ParseQQMusic(string url, ref Song song)
