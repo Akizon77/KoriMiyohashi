@@ -25,9 +25,7 @@ namespace KoriMiyohashi.Handlers
             if (arg3.StartsWith("http"))
             {
                 var parsed = new Song();
-                Parser.ParseQQMusic(arg3, ref parsed);
-                Parser.ParseNeteaseMusic(arg3, ref parsed);
-                Parser.ParseSpotify(arg3, ref parsed);
+                Parser.Parse(arg3, ref parsed);
                 //存在投稿的情况
                 if (sub != null)
                 {
