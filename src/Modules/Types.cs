@@ -55,7 +55,7 @@ namespace KoriMiyohashi.Modules.Types
         public string ToHtmlString()
         {
             string text = $"标签: #{Tags}\n" +
-                    $"附言: {Description.HtmlEscape()}\n" +
+                    $"附言: {(string.IsNullOrEmpty(Description.HtmlEscape()) ? "无" : Description.HtmlEscape())}\n" +
                     $"曲目数量: {Songs.Count}\n" +
                     "\n" +
                     $"当前曲目：";

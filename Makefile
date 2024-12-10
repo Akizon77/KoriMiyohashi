@@ -14,6 +14,7 @@ build:
 
 push:
 	docker build -t $(IMAGE_NAME) .
+	docker tag $(IMAGE_NAME) $(REPO_NAME):$(TAG)
 	docker push $(REPO_NAME):$(TAG)
 
 clean:
