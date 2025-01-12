@@ -49,6 +49,8 @@ docker logs -f kori-miyohashi
 
 - **GROUP_LINK**: Telegram 群组的链接。审核时候使用此链接定位稿件。
 
+- **Youtube_API**: 用于获取Youtube视频信息的API。
+
 - **OWNER**: 最高管理员的用户 ID。拥有所有权限。
 
 ## 手动构建镜像

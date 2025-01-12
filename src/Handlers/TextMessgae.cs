@@ -25,7 +25,11 @@ namespace KoriMiyohashi.Handlers
             if (arg3.StartsWith("http"))
             {
                 var parsed = new Song();
-                Parser.Parse(arg3, ref parsed);
+                var send_audio = await Parser.Parse(arg3, parsed,user.Id);
+                if (send_audio != null)
+                {
+                    parsed.FileId = send_audio.Audio!.FileId;
+                }
                 //存在投稿的情况
                 if (sub != null)
                 {
@@ -36,6 +40,7 @@ namespace KoriMiyohashi.Handlers
                         Title = parsed.Title,
                         Artist = parsed.Artist,
                         SubmissionId = sub.Id,
+                        FileId = parsed.FileId,
                         Link = string.IsNullOrEmpty(parsed.Link) ? arg3 : parsed.Link,
                     };
                     repos.Songs.Insertable(song).ExecuteCommand();

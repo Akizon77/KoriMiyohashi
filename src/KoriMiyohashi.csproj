@@ -26,6 +26,12 @@
     <PackageReference Include="SqlSugarCore" Version="5.1.4.168-preview20" />
     <PackageReference Include="Telegram.Bot" Version="19.0.0" />
   </ItemGroup>
+	
+  <ItemGroup>
+    <None Update=".env">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <!--<ItemGroup>
     <ProjectReference Include="C:\Users\hytf2\OneDrive\Dev\MamoLib\MamoLib.Hosting\MamoLib.Hosting.csproj" />

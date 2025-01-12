@@ -13,7 +13,7 @@ namespace KoriMiyohashi.Modules
 {
     public static class Parser
     {
-        public static void Parse(string url, ref Song song)
+        public static async Task<Message?> Parse(string url, Song song, long? chatid = null)
         {
             try
             {
@@ -94,12 +94,12 @@ namespace KoriMiyohashi.Modules
                 if (uri.Host.Contains("163"))
                 {
                     string? netease_id = queryParameters["id"];
-                    if (netease_id is null) return;
+                    if (netease_id is null) throw new Exception("无法找到网易云ID");
                     song.Link = $"https://music.163.com/song?id={netease_id}";
 
                     HttpClient client = new HttpClient();
-                    var s = client.GetAsync($"http://music.163.com/api/song/detail/?id={netease_id}&ids=%5B{netease_id}%5D").Result;
-                    var jo = JObject.Parse(s.Content.ReadAsStringAsync().Result);
+                    var s = await client.GetAsync($"http://music.163.com/api/song/detail/?id={netease_id}&ids=%5B{netease_id}%5D");
+                    var jo = JObject.Parse(await s.Content.ReadAsStringAsync());
                     try
                     {
                         song.Title = jo["songs"]![0]!["name"]!.ToString();
@@ -140,7 +140,7 @@ namespace KoriMiyohashi.Modules
                         }
                         song.Link = $"https://i.y.qq.com/v8/playsong.html?songmid={qq_id}";
                         if (uri.Host != ("i.y.qq.com"))
-                            rawResp = new HttpClient().GetStringAsync(new Uri(song.Link)).Result;
+                            rawResp = await new HttpClient().GetStringAsync(new Uri(song.Link));
                         //Title
                         string pattern = @"<span\s+class=""song_name__text"">(.*?)</span>";
                         Match match = Regex.Match(rawResp, pattern);
@@ -162,7 +162,7 @@ namespace KoriMiyohashi.Modules
                     string pattern = @"video/(.*)/";
                     Match match = Regex.Match(uri.AbsolutePath, pattern);
                     var video_id = match.Success ? match.Groups[1].Value : string.Empty;
-                    song.Link = "https://b23.tv/" + video_id;
+                    song.Link = "https://bilibili.com/" + video_id;
 
                     pattern = @"<meta .* name=""title"" content=""(.*?)"">";
                     match = Regex.Match(rawResp, pattern);
@@ -172,7 +172,9 @@ namespace KoriMiyohashi.Modules
                     pattern = @"<meta .* name=""author"" content=""(.*?)"">";
                     match = Regex.Match(rawResp, pattern);
                     song.Artist = match.Success ? match.Groups[1].Value : string.Empty;
-
+                    if (chatid != null)
+                        return await Uploader.Shared.UploadBilibiliVideo(video_id, chatid ?? throw new NullReferenceException());
+                    
                 }
                 //酷狗
 
@@ -198,11 +200,34 @@ namespace KoriMiyohashi.Modules
                     song.Title = decodedString;
                 }
 
+                if (uri.Host.Contains("youtu")){
+                    
+                    string? id = queryParameters["v"];
+                    if (string.IsNullOrEmpty(id))
+                    {
+                        // https://youtu.be/vboHrJJ83VY?si=xxxxx
+                        string _pattern = @"youtu\.be\/(.*)\?";
+                        Match _match = Regex.Match(uri.AbsolutePath, _pattern);
+                        id = _match.Success ? _match.Groups[1].Value : string.Empty;
+                    }
+                    if (string.IsNullOrEmpty(id))
+                        throw new Exception("无法找到youtube视频ID");
+                    using HttpClient client = new HttpClient();
+                    HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get,$"https://youtube.googleapis.com/youtube/v3/videos?part=snippet&id={id}&key={Env.Youtube_API}");
+                    var resp = await client.SendAsync(requestMessage);
+                    var resp_str = await resp.Content.ReadAsStringAsync();
+                    var jobj = JObject.Parse(resp_str);
+                    song.Title = (string)jobj["items"]![0]!["snippet"]!["title"]!;
+                    song.Artist = (string)jobj["items"]![0]!["snippet"]!["channelTitle"]!;
+                    song.Link = $"https://www.youtube.com/watch?v={id}";
+                }
+
             }
             catch (Exception e)
             {
                 Log.Warning("无法解析平台信息: {0},{1}", e.Message,url);
             }
+            return null;
         }
         [Obsolete("已合并，请使用Parse")]
         public static void ParseQQMusic(string url, ref Song song)

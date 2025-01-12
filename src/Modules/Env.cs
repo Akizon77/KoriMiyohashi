@@ -14,6 +14,8 @@
         public static string GROUP_LINK => EnvConfig.Get("GROUP_LINK");
         public static long OWNER => ToLong("OWNER");
 
+        public static string Youtube_API => EnvConfig.Get("Youtube_API");
+
         private static bool ToBool(string key, bool fallback = false)
         {
             return (bool.TryParse(EnvConfig.Get(key), out bool value)) ? value : fallback;
