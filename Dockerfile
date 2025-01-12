@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 WORKDIR /app
 
-COPY ./ ./
+RUN git clone https://github.com/Akizon77/KoriMiyohashi ./
 
 RUN dotnet restore src
 
