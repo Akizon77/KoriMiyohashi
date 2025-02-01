@@ -73,13 +73,19 @@ namespace KoriMiyohashi.Modules
                 
             }
             , null, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(interval_time));
-            using (var fileStream = new FileStream($"./temp/{bvid}.mp3", FileMode.Create, FileAccess.Write, FileShare.None))
+            try
             {
-                while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                using (var fileStream = new FileStream($"./temp/{bvid}.mp3", FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    await fileStream.WriteAsync(buffer, 0, read);
-                    bytesRead += read;
+                    while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        await fileStream.WriteAsync(buffer, 0, read);
+                        bytesRead += read;
+                    }
                 }
+            }
+            finally
+            {
                 timer.Dispose();
             }
             //FFmpeg
@@ -119,7 +125,7 @@ namespace KoriMiyohashi.Modules
             Message message;
             using (var fs_stream = new FileStream(ffmpeg_out, FileMode.Open, FileAccess.Read))
             {
-                message = await BotClient.SendAudioAsync(chatid, InputFile.FromStream(fs_stream), caption: $"{title}\n\n请勿删除此消息");
+                message = await BotClient.SendAudioAsync(chatid, InputFile.FromStream(fs_stream), caption: $"{title}\n\n请勿删除此消息",title:title,performer:author);
             }
             try
             {
