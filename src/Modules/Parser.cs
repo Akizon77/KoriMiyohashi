@@ -159,19 +159,18 @@ namespace KoriMiyohashi.Modules
                 //哔哩哔哩
                 if (uri.Host.Contains("bilibili") || uri.Host.Contains("b23"))
                 {
-                    string pattern = @"video/(.*)/";
-                    Match match = Regex.Match(uri.AbsolutePath, pattern);
-                    var video_id = match.Success ? match.Groups[1].Value : string.Empty;
-                    song.Link = "https://bilibili.com/" + video_id;
+                    string pattern = @"BV[A-Za-z0-9]{10}";
+                    Match match = Regex.Match(uri.ToString(), pattern);
+                    var video_id = match.Success ? match.Value : string.Empty;
+                    song.Link = "https://www.bilibili.com/video/" + video_id;
 
-                    pattern = @"<meta .* name=""title"" content=""(.*?)"">";
-                    match = Regex.Match(rawResp, pattern);
-                    var t = match.Success ? match.Groups[1].Value : string.Empty;
-                    song.Title = t.Replace("_哔哩哔哩_bilibili", "");
+                    var bili = await BiliDown.Shared;
+                    var video_detail = await bili.GetVideoDetailsAsync(video_id);
 
-                    pattern = @"<meta .* name=""author"" content=""(.*?)"">";
-                    match = Regex.Match(rawResp, pattern);
-                    song.Artist = match.Success ? match.Groups[1].Value : string.Empty;
+                    song.Title = (string)video_detail!["data"]!["title"]!;
+
+                    song.Artist = (string)video_detail!["data"]!["owner"]!["name"]!;
+
                     if (chatid != null)
                         return await Uploader.Shared.UploadBilibiliVideo(video_id, chatid ?? throw new NullReferenceException());
                     
