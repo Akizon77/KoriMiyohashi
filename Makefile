@@ -13,7 +13,7 @@ build:
 	dotnet publish $(PROJECT_DIR) -c $(CONFIGURATION) -p:PublishSingleFile=true --self-contained true -o bin; \
 
 push:
-	docker build -t $(IMAGE_NAME) .
+	docker build --no-cache -t $(IMAGE_NAME) .
 	docker tag $(IMAGE_NAME) $(REPO_NAME):$(TAG)
 	docker push $(REPO_NAME):$(TAG)
 

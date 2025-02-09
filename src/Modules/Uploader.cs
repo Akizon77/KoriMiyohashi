@@ -55,90 +55,70 @@ namespace KoriMiyohashi.Modules
             var bytesRead = 0L;
 
             var tips = await BotClient.SendTextMessageAsync(chatid,"正在尝试从哔哩哔哩下载...");
-
-            //进度条
-            double interval_time = 2;
-            var bytesRead_lastSecond = 0L;
-            long totalBytes = res.Content.Headers.ContentLength ?? -1;
-            Timer timer = new Timer(x =>
-            {
-                if (totalBytes > 0)
-                {
-                    var progress = (double)bytesRead / totalBytes * 100;
-                    var speed = (double)(bytesRead - bytesRead_lastSecond) / 1000 / 1000 / interval_time;
-                    var r = tips.FastEdit($" 下载进度: {progress:F2}% - {speed:F2}MB/s - {bytesRead}/{totalBytes} 字节");
-
-                }
-                bytesRead_lastSecond = bytesRead;
-                
-            }
-            , null, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(interval_time));
+            Message message;
             try
             {
-                using (var fileStream = new FileStream($"./temp/{bvid}.mp3", FileMode.Create, FileAccess.Write, FileShare.None))
+                //进度条
+                long totalBytes = res.Content.Headers.ContentLength ?? -1;
+
+                using (var download_progress_stream = new MamoLib.ProgressStream(stream,TimeSpan.FromSeconds(2), length: totalBytes))
                 {
-                    while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    download_progress_stream.ProgressChanged += (progress) =>
                     {
-                        await fileStream.WriteAsync(buffer, 0, read);
-                        bytesRead += read;
+                        if (totalBytes > 0)
+                        {
+                            tips.FastEdit($" Downloading {progress:F2}% - {bytesRead / 1024D / 1024D:F2}/{totalBytes / 1024D / 1024D:F2} MB").Wait();
+                        }
+                    };
+                    using (var fileStream = new FileStream($"./temp/{bvid}.mp3", FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        while ((read = await download_progress_stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        {
+                            await fileStream.WriteAsync(buffer, 0, read);
+                            bytesRead += read;
+                        }
                     }
                 }
+
+                string title = (string)video_detail!["data"]!["title"]!;
+                string author = (string)video_detail!["data"]!["owner"]!["name"]!;
+                string audio_file = $"./temp/{bvid}.mp3";
+
+                
+                using (var fs_stream = new FileStream(audio_file, FileMode.Open, FileAccess.Read))
+                {
+                    using (var upload_progress_stream = new MamoLib.ProgressStream(fs_stream, TimeSpan.FromSeconds(2)))
+                    {
+                        upload_progress_stream.ProgressChanged += (progress) =>
+                        {
+                            tips.FastEdit($" Uploading {progress:F2}% - {totalBytes / 1024D / 1024D:F2} MB").Wait();
+                        };
+                        message = await BotClient.SendAudioAsync(chatid, InputFile.FromStream(upload_progress_stream), caption: $"{title}\n\n请勿删除此消息", title: title, performer: author, duration: (int)video_detail!["data"]!["duration"]!);
+                    }
+
+                }
+                return message;
+            }
+            catch (Exception e)
+            {
+                tips.FastEdit($"Error: {e.Message}\n{e.Source}").Wait();
             }
             finally
             {
-                timer.Dispose();
+                tips.DeleteLater(15);
             }
-            //FFmpeg
-            await tips.FastEdit("正在编码...");
-            string title = (string)video_detail!["data"]!["title"]!;
-            string author = (string)video_detail!["data"]!["owner"]!["name"]!;
-            string ffmpeg_out = $"./temp/encode_{bvid}.m4a";
-            string ffmpegCommand = $"-i \"./temp/{bvid}.mp3\" -c:a aac -b:a 192k -loglevel quiet -y -metadata title=\"{title}\" -metadata artist=\"{author}\" \"{ffmpeg_out}\"";
-            try { System.IO.File.Delete(ffmpeg_out); } finally { }
-            ProcessStartInfo processStartInfo = new ProcessStartInfo
-            {
-                FileName = "ffmpeg",
-                Arguments = ffmpegCommand,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using (Process process = new Process())
-            {
-                process.StartInfo = processStartInfo;
-                process.Start();
-
-                // 读取输出和错误信息
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-
-                process.WaitForExit();
-
-                if (process.ExitCode != 0)
-                {
-                    Log.Error(error,"FFmpeg Error");
-                }
-            }
-
-            await tips.FastEdit("正在上传到Telegram...");
-            Message message;
-            using (var fs_stream = new FileStream(ffmpeg_out, FileMode.Open, FileAccess.Read))
-            {
-                message = await BotClient.SendAudioAsync(chatid, InputFile.FromStream(fs_stream), caption: $"{title}\n\n请勿删除此消息",title:title,performer:author);
-            }
+            
             try
             {
                 System.IO.File.Delete($"./temp/{bvid}.mp3");
-                System.IO.File.Delete(ffmpeg_out);
             }
             catch (Exception)
             {
                 Log.Warning("无法删除缓存文件" + $"./temp/{bvid}.mp3");
             }
-            tips.DeleteLater(0);
-            return message;
+            throw new Exception();
         }
+
 
     }
 }
